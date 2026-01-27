@@ -9,14 +9,20 @@ import {
   Filter,
   Camera,
   Projector,
+  User,
+  LogOut,
+  LayoutDashboard,
+  LogIn,
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { COLORS } from "@/utils/constants";
 import { getGraphStyles } from "@/utils/graphStyles";
 import CompanySelector from "./CompanySelector";
+import { useSession, signIn, signOut } from "next-auth/react";
+import Link from "next/link";
 
-export default function UIOverlay() {
+export default function Navbar() {
   const {
     cy,
     nodesCount,
@@ -26,10 +32,15 @@ export default function UIOverlay() {
     toggleFilterPanel,
   } = useGraphStore();
 
+  const { data: session, status } = useSession(); // Get Auth State
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [nodeList, setNodeList] = useState<any[]>([]);
 
+  // Toggle Dark Mode
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -42,6 +53,21 @@ export default function UIOverlay() {
     }
   }, [isDarkMode, cy]);
 
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Sync Nodes List
   useEffect(() => {
     if (!cy) return;
 
@@ -56,6 +82,7 @@ export default function UIOverlay() {
     setNodeList(nodes);
   }, [nodesCount, cy]);
 
+  // Group Nodes for Dropdown
   const groupedNodes = useMemo(() => {
     const groups: Record<string, any[]> = {};
     nodeList.forEach((node) => {
@@ -65,6 +92,7 @@ export default function UIOverlay() {
     return groups;
   }, [nodeList]);
 
+  // Handlers
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !cy) return;
@@ -138,11 +166,9 @@ export default function UIOverlay() {
 
   return (
     <div className="absolute top-0 left-0 w-full z-50 pointer-events-auto">
-      {/* --- Main Single Navbar Container --- */}
       <nav className="relative w-full bg-(--card-bg)/90 backdrop-blur-md border-b border-(--border) px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all">
-        {/* LEFT SECTION: Title & Stats */}
+        {/* LEFT: Title */}
         <div className="flex items-center gap-6 z-10">
-          {/* Logo & Title */}
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm">
               <Projector className="w-5 h-5" />
@@ -157,10 +183,8 @@ export default function UIOverlay() {
             </div>
           </div>
 
-          {/* Vertical Divider */}
           <div className="hidden md:block w-px h-8 bg-(--border)"></div>
 
-          {/* Legend / Stats */}
           <div className="hidden md:flex gap-6 items-center">
             <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub)">
               <div className="w-6 h-0 border-t-2 border-solid border-(--text-sub) opacity-60"></div>{" "}
@@ -173,12 +197,12 @@ export default function UIOverlay() {
           </div>
         </div>
 
-        {/* CENTER SECTION: Company Selector (Absolute on Desktop for true centering) */}
+        {/* CENTER: Company Selector */}
         <div className="z-10 w-full md:w-auto flex justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2">
           <CompanySelector />
         </div>
 
-        {/* RIGHT SECTION: Controls */}
+        {/* RIGHT: Controls */}
         <div className="flex flex-wrap items-center gap-2 z-10 justify-end w-full md:w-auto">
           {/* Export */}
           <button
@@ -189,7 +213,7 @@ export default function UIOverlay() {
             <Camera className="w-4 h-4" />
           </button>
 
-          {/* Filter Toggle */}
+          {/* Filter */}
           <button
             onClick={toggleFilterPanel}
             className="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border)"
@@ -225,7 +249,7 @@ export default function UIOverlay() {
               ))}
           </select>
 
-          {/* Search Box */}
+          {/* Search */}
           <div className="relative group">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-(--text-sub)" />
@@ -286,6 +310,67 @@ export default function UIOverlay() {
               <Moon className="w-4 h-4" />
             )}
           </button>
+
+          {/* --- PROFILE DROPDOWN --- */}
+          <div className="relative" ref={profileRef}>
+            {status === "loading" ? (
+              // Loading State Skeleton
+              <div className="w-9 h-9 rounded-full bg-gray-500/20 animate-pulse"></div>
+            ) : session ? (
+              // Logged In: Show Avatar/User Icon
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="w-9 h-9 flex items-center justify-center bg-orange-600 text-white rounded-full hover:bg-orange-700 transition shadow-sm ring-2 ring-transparent focus:ring-orange-400"
+              >
+                <User className="w-5 h-5" />
+              </button>
+            ) : (
+              // Logged Out: Show Login Button
+              <button
+                onClick={() => signIn()}
+                className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition"
+              >
+                <LogIn className="w-4 h-4" /> Login
+              </button>
+            )}
+
+            {/* Dropdown Menu */}
+            {isProfileOpen && session && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-(--card-bg) border border-(--border) rounded-xl shadow-2xl p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {/* User Info Header */}
+                <div className="px-3 py-2 border-b border-(--border) mb-1">
+                  <p className="text-sm font-bold text-(--text-main) truncate">
+                    {session.user?.name}
+                  </p>
+                  <p className="text-xs text-(--text-sub) truncate">
+                    {session.user?.email}
+                  </p>
+                  <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded uppercase font-bold mt-1 inline-block">
+                    {session.user?.role}
+                  </span>
+                </div>
+
+                {/* Admin Link (Only if Admin) */}
+                {session.user?.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--border) rounded-lg transition"
+                  >
+                    <LayoutDashboard className="w-4 h-4" /> Admin Panel
+                  </Link>
+                )}
+
+                {/* Sign Out */}
+                <button
+                  onClick={() => signOut()}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition w-full text-left"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+          {/* ------------------------- */}
         </div>
       </nav>
     </div>

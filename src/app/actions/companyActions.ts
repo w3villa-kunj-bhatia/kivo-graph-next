@@ -3,10 +3,36 @@
 import { revalidatePath } from "next/cache";
 import dbConnect from "@/lib/dbConnect";
 import Company from "@/models/Company";
+import User from "@/models/User";
+import { COLORS } from "@/utils/constants";
+
+// --- NEW: Statistics Action ---
+export async function getStatistics() {
+  await dbConnect();
+
+  try {
+    const [companyCount, userCount] = await Promise.all([
+      Company.countDocuments(),
+      User.countDocuments(),
+    ]);
+
+    // Modules are hardcoded in constants.ts, so we just count the keys
+    const moduleCount = Object.keys(COLORS).length;
+
+    return {
+      companyCount,
+      userCount,
+      moduleCount,
+    };
+  } catch (error) {
+    console.error("Failed to fetch stats:", error);
+    return { companyCount: 0, userCount: 0, moduleCount: 0 };
+  }
+}
+// ------------------------------
 
 /**
  * Fetches all companies from the DB.
- * Converts MongoDB objects to plain JSON to avoid Next.js serialization warnings.
  */
 export async function getCompanies() {
   await dbConnect();
@@ -16,7 +42,7 @@ export async function getCompanies() {
 
     return companies.map((company: any) => ({
       ...company,
-      _id: company._id.toString(), // Convert ObjectId to string
+      _id: company._id.toString(),
       createdAt: company.createdAt?.toISOString(),
     }));
   } catch (error) {
@@ -26,13 +52,12 @@ export async function getCompanies() {
 }
 
 /**
- * Creates a new company with the selected modules.
+ * Creates a new company
  */
 export async function createCompany(prevState: any, formData: FormData) {
   await dbConnect();
 
   const name = formData.get("name") as string;
-  // "modules" will be an array of values from checked checkboxes
   const allowedModules = formData.getAll("modules") as string[];
 
   if (!name) {
@@ -45,12 +70,9 @@ export async function createCompany(prevState: any, formData: FormData) {
       allowedModules,
     });
 
-    // Refresh the admin page data immediately
     revalidatePath("/admin");
-
     return { success: true, message: "Company created successfully!" };
   } catch (error: any) {
-    // specific error handling for duplicate names
     if (error.code === 11000) {
       return {
         success: false,
@@ -64,9 +86,6 @@ export async function createCompany(prevState: any, formData: FormData) {
   }
 }
 
-/**
- * Deletes a company by ID
- */
 export async function deleteCompany(companyId: string) {
   await dbConnect();
   try {
