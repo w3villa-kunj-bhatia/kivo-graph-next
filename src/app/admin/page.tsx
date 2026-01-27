@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useRef } from "react";
+import { useActionState, useEffect, useState, useRef, useMemo } from "react";
 import {
   saveCompany,
   deleteCompany,
@@ -21,9 +21,13 @@ import {
   Pencil,
   Trash,
   X,
+  ArrowUpDown,
 } from "lucide-react";
 
 const AVAILABLE_MODULES = Object.keys(COLORS);
+
+// Sort Options Type
+type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
 
 export default function AdminPage() {
   // Data State
@@ -33,6 +37,10 @@ export default function AdminPage() {
     userCount: 0,
     moduleCount: 0,
   });
+
+  // --- NEW: Sort State ---
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+  // ----------------------
 
   // Form State for Editing
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,14 +52,12 @@ export default function AdminPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // --- FIXED HOOK HERE ---
   const [state, formAction, isPending] = useActionState(saveCompany, {
     success: false,
     message: "",
     timestamp: 0,
   });
 
-  // 1. Fetch Data on Mount & After Success
   useEffect(() => {
     fetchData();
     if (state?.success) {
@@ -68,7 +74,30 @@ export default function AdminPage() {
     setStats(statsData);
   }
 
-  // 2. Handle Edit Click
+  // --- NEW: Sorting Logic ---
+  const sortedCompanies = useMemo(() => {
+    // Create a shallow copy to avoid mutating state directly
+    const sorted = [...companies];
+
+    switch (sortOption) {
+      case "name-asc":
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case "name-desc":
+        return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      case "modules-most":
+        return sorted.sort(
+          (a, b) => b.allowedModules.length - a.allowedModules.length,
+        );
+      case "modules-least":
+        return sorted.sort(
+          (a, b) => a.allowedModules.length - b.allowedModules.length,
+        );
+      default:
+        return sorted;
+    }
+  }, [companies, sortOption]);
+  // -------------------------
+
   function handleEdit(company: any) {
     setEditingId(company._id);
     setFormName(company.name);
@@ -76,7 +105,6 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // 3. Handle Form Changes
   function toggleModule(mod: string) {
     const newSet = new Set(formModules);
     if (newSet.has(mod)) newSet.delete(mod);
@@ -90,7 +118,6 @@ export default function AdminPage() {
     setFormModules(new Set());
   }
 
-  // 4. Handle Delete
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this company?")) {
       await deleteCompany(id);
@@ -98,7 +125,6 @@ export default function AdminPage() {
     }
   }
 
-  // Close profile on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -114,10 +140,9 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
-      {/* --- TOP HEADER --- */}
+      {/* Header & Stats Sections (Unchanged) */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-orange-500">Admin Dashboard</h1>
-
         <div className="flex items-center gap-4">
           <Link
             href="/"
@@ -126,8 +151,6 @@ export default function AdminPage() {
             <Home className="w-4 h-4" />
             <span className="text-sm font-medium">Graph View</span>
           </Link>
-
-          {/* Profile Dropdown */}
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -135,7 +158,6 @@ export default function AdminPage() {
             >
               <User className="w-5 h-5" />
             </button>
-
             {isProfileOpen && (
               <div className="absolute right-0 top-full mt-2 w-64 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-3 py-2 border-b border-gray-700 mb-1">
@@ -149,7 +171,6 @@ export default function AdminPage() {
                     {session?.user?.role || "Admin"}
                   </span>
                 </div>
-
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition w-full text-left"
@@ -162,7 +183,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* --- STATS CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
@@ -175,7 +195,6 @@ export default function AdminPage() {
             </p>
           </div>
         </div>
-
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
             <Users className="w-6 h-6" />
@@ -187,7 +206,6 @@ export default function AdminPage() {
             <p className="text-2xl font-bold text-white">{stats.userCount}</p>
           </div>
         </div>
-
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
             <Layers className="w-6 h-6" />
@@ -200,7 +218,7 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* --- LEFT: Create / Edit Form --- */}
+        {/* LEFT: Create / Edit Form */}
         <div
           className={`bg-gray-800 p-6 rounded-xl border h-fit shadow-lg transition-colors ${editingId ? "border-orange-500/50" : "border-gray-700"}`}
         >
@@ -223,7 +241,6 @@ export default function AdminPage() {
 
           <form action={formAction} className="space-y-4">
             {editingId && <input type="hidden" name="id" value={editingId} />}
-
             <div>
               <label className="block text-sm mb-1 text-gray-400">
                 Company Name
@@ -238,7 +255,6 @@ export default function AdminPage() {
                 className="w-full p-2.5 rounded-lg bg-gray-700/50 border border-gray-600 focus:border-orange-500 outline-none text-white transition-all"
               />
             </div>
-
             <div>
               <label className="block text-sm mb-2 text-gray-400">
                 Allowed Modules
@@ -270,7 +286,6 @@ export default function AdminPage() {
                 ))}
               </div>
             </div>
-
             {state?.message && (
               <p
                 className={`text-sm p-2 rounded ${
@@ -282,7 +297,6 @@ export default function AdminPage() {
                 {state.message}
               </p>
             )}
-
             <button
               disabled={isPending}
               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20"
@@ -298,23 +312,39 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* --- RIGHT: Existing Companies --- */}
+        {/* RIGHT: Existing Companies with Sort */}
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Existing Companies</h2>
-            <span className="bg-gray-700 text-xs font-bold px-2 py-1 rounded-full text-gray-300">
-              {companies.length}
-            </span>
+
+            {/* --- NEW: Sort Dropdown --- */}
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-4 h-4 text-gray-400" />
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+                className="bg-gray-700 border border-gray-600 text-xs text-white rounded px-2 py-1 outline-none focus:border-orange-500 cursor-pointer"
+              >
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="modules-most">Modules (Most)</option>
+                <option value="modules-least">Modules (Least)</option>
+              </select>
+              <span className="bg-gray-700 text-xs font-bold px-2 py-1 rounded-full text-gray-300 ml-1">
+                {companies.length}
+              </span>
+            </div>
+            {/* ------------------------- */}
           </div>
 
-          {companies.length === 0 ? (
+          {sortedCompanies.length === 0 ? (
             <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
               <Building2 className="w-10 h-10 text-gray-600 mx-auto mb-2" />
               <p className="text-gray-500 italic">No companies found.</p>
             </div>
           ) : (
             <div className="space-y-3 max-h-150 overflow-y-auto pr-2 custom-scrollbar">
-              {companies.map((company) => (
+              {sortedCompanies.map((company) => (
                 <div
                   key={company._id}
                   className={`p-4 rounded-lg border flex justify-between items-center group transition-all ${
