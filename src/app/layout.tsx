@@ -6,7 +6,7 @@ import SessionWrapper from "@/components/SessionWrapper";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Kivo Graph",
+  title: "Kivo Dependency Graph",
   description: "Dependency Graph Visualization",
 };
 

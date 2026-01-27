@@ -169,7 +169,7 @@ export default function Navbar() {
             </div>
             <div>
               <h1 className="font-bold text-(--text-main) text-sm leading-tight">
-                Kivo Graph
+                Kivo Dependency Graph
               </h1>
               <span className="text-[10px] font-semibold text-(--text-sub) bg-(--bg) border border-(--border) px-1.5 py-0.5 rounded">
                 {nodesCount > 0 ? `${nodesCount} Nodes` : "No Data"}

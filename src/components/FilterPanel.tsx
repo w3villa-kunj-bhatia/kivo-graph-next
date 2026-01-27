@@ -73,8 +73,8 @@ export default function FilterPanel() {
   return (
     <div
       className={clsx(
-        "absolute top-25 left-6 w-56 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
-        isFilterPanelOpen ? "translate-x-0" : "-translate-x-full",
+        "absolute top-25 w-56 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
+        isFilterPanelOpen ? "translate-x-5" : "-translate-x-full",
       )}
     >
       <div className="p-4 sticky top-0 bg-inherit z-10 flex justify-between items-center border-b border-(--border)">
