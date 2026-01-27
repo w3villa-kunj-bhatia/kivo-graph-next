@@ -51,6 +51,7 @@ export default function GraphCanvas() {
       highlightNode(cyRef.current!, node.id());
 
       const neighbors = node.neighborhood("node[!isGroup]").map((n: any) => ({
+        id: n.id(),
         label: n.data("label"),
         module: n.data("module"),
       }));
