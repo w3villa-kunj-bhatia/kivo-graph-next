@@ -15,7 +15,6 @@ if (typeof cytoscape("core", "expandCollapse") === "undefined") {
 
 export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Get popup state to detect closing
   const { setCy, isDarkMode, openPopup, closePopup, popup } = useGraphStore();
   const cyRef = useRef<cytoscape.Core | null>(null);
 
@@ -79,17 +78,14 @@ export default function GraphCanvas() {
   // 2. THEME FIX: Force update styles when Dark Mode changes
   useEffect(() => {
     if (cyRef.current) {
-      // Cast to 'any' to allow partial JSON update
       cyRef.current.json({ style: getGraphStyles(isDarkMode) } as any);
     }
   }, [isDarkMode]);
 
-  // 3. NEW: Listen for Popup Close to Deselect
+  // 3. Listen for Popup Close to Deselect
   useEffect(() => {
     if (!popup.isOpen && cyRef.current) {
-      // Clear visual highlights (dimming)
       clearHighlights(cyRef.current);
-      // Clear actual Cytoscape selection
       cyRef.current.elements().unselect();
     }
   }, [popup.isOpen]);
@@ -97,7 +93,8 @@ export default function GraphCanvas() {
   return (
     <div
       ref={containerRef}
-      className="w-screen h-screen absolute top-0 left-0 z-0 bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
+      // UPDATED: Using CSS variable for background to match globals.css
+      className="w-screen h-screen absolute top-0 left-0 z-0 bg-(--bg) transition-colors duration-300"
     />
   );
 }

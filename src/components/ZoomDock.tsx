@@ -24,7 +24,7 @@ export default function ZoomDock() {
       const currentZoom = cy.zoom();
       const w = cy.width();
       const h = cy.height();
-      const pan = cy.pan();
+      const pan = cy.pan(); // pan is an object {x, y}
 
       const newZoom = currentZoom * factor;
 
@@ -40,24 +40,28 @@ export default function ZoomDock() {
   };
 
   return (
-    <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur border border-slate-200 dark:border-slate-700 p-1.5 rounded-lg shadow-xl z-40">
+    // UPDATED: Using CSS variables for Card Background and Border
+    <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 bg-(--card-bg) backdrop-blur-md border border-(--border) p-1.5 rounded-lg shadow-xl z-40">
       <button
         onClick={() => handleZoom(1.4)}
-        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 transition"
+        // UPDATED: Using CSS variables for Hover and Text
+        className="p-2 hover:bg-(--border) rounded text-(--text-main) transition"
       >
         <Plus className="w-4 h-4" />
       </button>
 
       <button
         onClick={() => cy?.fit(undefined, 50)}
-        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 transition"
+        // UPDATED: Using CSS variables for Hover and Text
+        className="p-2 hover:bg-(--border) rounded text-(--text-main) transition"
       >
         <Maximize className="w-4 h-4" />
       </button>
 
       <button
         onClick={() => handleZoom(0.7)}
-        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 transition"
+        // UPDATED: Using CSS variables for Hover and Text
+        className="p-2 hover:bg-(--border) rounded text-(--text-main) transition"
       >
         <Minus className="w-4 h-4" />
       </button>

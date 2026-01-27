@@ -11,8 +11,9 @@ import {
   Projector,
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
-import { useState, useEffect } from "react"; // <--- Ensure useEffect is imported
+import { useState, useEffect, useMemo } from "react";
 import { COLORS } from "@/utils/constants";
+import { getGraphStyles } from "@/utils/graphStyles";
 
 export default function UIOverlay() {
   const {
@@ -23,23 +24,57 @@ export default function UIOverlay() {
     toggleTheme,
     toggleFilterPanel,
   } = useGraphStore();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
 
-  // --- THEME SYNC FIX ---
-  // This forces the <html> tag to update when isDarkMode changes
+  // New State for the Node Dropdown
+  const [nodeList, setNodeList] = useState<any[]>([]);
+
+  // --- THEME SYNC ---
   useEffect(() => {
+    // 1. Update DOM for Tailwind
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, [isDarkMode]);
 
-  // ... (Keep the rest of your existing code: handleFileUpload, handleExport, etc.)
+    // 2. Update Cytoscape Graph Styles
+    if (cy) {
+      cy.style(getGraphStyles(isDarkMode));
+    }
+  }, [isDarkMode, cy]);
 
+  // --- POPULATE DROPDOWN ---
+  useEffect(() => {
+    if (!cy) return;
+
+    // Extract non-group nodes for the list
+    const nodes = cy.nodes("[!isGroup]").map((n) => ({
+      id: n.id(),
+      label: n.data("label"),
+      fullLabel: n.data("fullLabel") || n.data("label"),
+      module: n.data("module") || "Other",
+    }));
+
+    // Sort alphabetically
+    nodes.sort((a, b) => a.fullLabel.localeCompare(b.fullLabel));
+    setNodeList(nodes);
+  }, [nodesCount, cy]);
+
+  // Group nodes by module for the <optgroup> in dropdown
+  const groupedNodes = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    nodeList.forEach((node) => {
+      if (!groups[node.module]) groups[node.module] = [];
+      groups[node.module].push(node);
+    });
+    return groups;
+  }, [nodeList]);
+
+  // --- HANDLERS ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // ... your existing upload logic
     const file = e.target.files?.[0];
     if (!file || !cy) return;
     const reader = new FileReader();
@@ -50,7 +85,7 @@ export default function UIOverlay() {
         cy.elements().remove();
         cy.add(elements.nodes);
         cy.add(elements.edges);
-        // Cast to 'any' to fix strict type error
+
         const layoutConfig: any = {
           name: "fcose",
           animate: true,
@@ -62,7 +97,7 @@ export default function UIOverlay() {
         cy.layout(layoutConfig).run();
         setStats(elements.nodes.length, elements.edges.length);
       } catch (err) {
-        alert("Error parsing JSON");
+        alert("Error parsing JSON: " + err);
       }
     };
     reader.readAsText(file);
@@ -82,7 +117,19 @@ export default function UIOverlay() {
     link.click();
   };
 
-  // Search Logic
+  const jumpToNode = (id: string) => {
+    if (!cy) return;
+    const node = cy.getElementById(id);
+    if (node.nonempty()) {
+      cy.zoom({ level: 1.5, position: node.position() });
+      cy.center(node);
+      node.emit("tap");
+      setSuggestions([]);
+      setSearchTerm("");
+    }
+  };
+
+  // Search filter effect
   useEffect(() => {
     if (!searchTerm || !cy) {
       setSuggestions([]);
@@ -99,97 +146,107 @@ export default function UIOverlay() {
     setSuggestions(matches.slice(0, 10));
   }, [searchTerm, cy]);
 
-  const jumpToNode = (id: string) => {
-    if (!cy) return;
-    const node = cy.getElementById(id);
-    if (node.nonempty()) {
-      cy.zoom({ level: 1.5, position: node.position() }); // Instant jump
-      cy.center(node);
-      node.emit("tap");
-      setSuggestions([]);
-      setSearchTerm("");
-    }
-  };
-
   return (
-    <div className="absolute top-0 left-0 w-full p-4 pointer-events-none z-50 flex justify-between items-start">
-      {/* ... Your existing JSX for Left Nav, Legend, Right Nav ... */}
-      {/* Just ensuring the Theme Button calls toggleTheme correctly */}
-      {/* Example of where the button is:
-          <div className="bg-white/90 dark:bg-slate-800/90 ...">
-             ...
-             <button onClick={toggleTheme} ...>
-                {isDarkMode ? <Sun /> : <Moon />}
-             </button>
-          </div>
-       */}
-      {/* PASTE YOUR EXISTING JSX RETURN HERE (It was correct in previous steps) */}
-
+    <div className="absolute top-0 left-0 w-full p-4 pointer-events-none z-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* LEFT: Title & Stats */}
       <div className="flex gap-4 items-center pointer-events-auto">
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 px-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+        <div className="bg-(--card-bg) backdrop-blur-md p-2 px-4 rounded-xl shadow-lg border border-(--border) flex items-center gap-3">
           <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white">
             <Projector className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 dark:text-white text-sm leading-tight">
-              Kivo Graph
+            <h1 className="font-bold text-(--text-main) text-sm leading-tight">
+              Kivo Dependency Graph
             </h1>
-            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-semibold text-(--text-sub) bg-(--bg) border border-(--border) px-1.5 py-0.5 rounded">
               {nodesCount > 0 ? `${nodesCount} Nodes` : "Upload JSON"}
             </span>
           </div>
         </div>
 
-        <div className="hidden md:flex bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 px-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 gap-6 h-12 items-center">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-            <div className="w-6 h-0 border-t-2 border-slate-400"></div> Direct
+        {/* Legend (Hidden on mobile) */}
+        <div className="hidden md:flex bg-(--card-bg) backdrop-blur-md p-2 px-4 rounded-xl shadow-lg border border-(--border) gap-6 h-12 items-center">
+          <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub)">
+            <div className="w-6 h-0 border-t-2 border-solid border-(--text-sub) opacity-60"></div>{" "}
+            Direct
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-            <div className="w-6 h-0 border-t-2 border-dashed border-slate-400"></div>{" "}
+          <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub)">
+            <div className="w-6 h-0 border-t-2 border-dashed border-(--text-sub) opacity-60"></div>{" "}
             Usage
           </div>
         </div>
       </div>
 
-      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 rounded-xl shadow-lg pointer-events-auto flex gap-2 border border-slate-200 dark:border-slate-700 items-center">
+      {/* RIGHT: Controls */}
+      <div className="bg-(--card-bg) backdrop-blur-md p-2 rounded-xl shadow-lg pointer-events-auto flex flex-wrap gap-2 border border-(--border) items-center">
+        {/* Export Button */}
         <button
           onClick={handleExport}
-          className="btn-icon text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-lg transition"
+          className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main)"
           title="Export Image"
         >
           <Camera className="w-4 h-4" />
         </button>
 
+        {/* Filter Toggle */}
         <button
           onClick={toggleFilterPanel}
-          className="btn-icon text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-lg transition flex items-center gap-2 text-xs font-semibold px-3"
+          className="flex items-center gap-2 text-xs font-semibold px-3 p-2 rounded-lg transition hover:bg-(--border) text-(--text-main)"
           title="Filters"
         >
-          <Filter className="w-4 h-4" /> Filters
+          <Filter className="w-4 h-4" />{" "}
+          <span className="hidden sm:inline">Filters</span>
         </button>
 
+        <select
+          className="h-9 rounded-lg border border-(--border) bg-(--bg) text-(--text-main) text-xs px-2 outline-none cursor-pointer w-32 md:w-48 focus:border-(--accent)"
+          onChange={(e) => jumpToNode(e.target.value)}
+          defaultValue=""
+          style={{ appearance: "auto" }} // Ensure native dropdown arrow shows
+        >
+          <option value="" disabled>
+            Select Node ({nodeList.length})...
+          </option>
+          {Object.keys(groupedNodes)
+            .sort()
+            .map((module) => (
+              <optgroup
+                key={module}
+                label={module}
+                className="text-(--text-main) bg-(--bg)"
+              >
+                {groupedNodes[module].map((node) => (
+                  <option key={node.id} value={node.id}>
+                    {node.fullLabel}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+        </select>
+
+        {/* Search Bar */}
         <div className="relative group">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-(--text-sub)" />
             <input
               type="text"
-              placeholder="Search nodes..."
+              placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-3 py-2 text-sm bg-slate-100 dark:bg-slate-900 border-none rounded-lg focus:ring-2 ring-blue-500 outline-none dark:text-white w-48 transition-all focus:w-64"
+              className="pl-9 pr-3 py-2 text-sm bg-(--bg) text-(--text-main) border border-(--border) rounded-lg outline-none w-32 md:w-48 transition-all focus:w-40 md:focus:w-56 focus:border-(--accent)"
             />
           </div>
           {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 w-full mt-2 bg-(--card-bg) border border-(--border) rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto">
               {suggestions.map((s) => (
                 <div
                   key={s.id}
                   onClick={() => jumpToNode(s.id)}
-                  className="px-3 py-2 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 flex justify-between items-center text-slate-700 dark:text-slate-200"
+                  className="px-3 py-2 text-xs cursor-pointer hover:bg-(--border) flex justify-between items-center text-(--text-main)"
                 >
-                  <span>{s.fullLabel}</span>
+                  <span className="truncate max-w-[70%]">{s.fullLabel}</span>
                   <span
-                    className="text-[10px] uppercase font-bold px-1.5 rounded border opacity-70"
+                    className="text-[10px] uppercase font-bold px-1.5 rounded border opacity-70 whitespace-nowrap"
                     style={{
                       color: COLORS[s.module],
                       borderColor: COLORS[s.module],
@@ -203,10 +260,12 @@ export default function UIOverlay() {
           )}
         </div>
 
-        <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+        <div className="w-px h-6 bg-(--border) mx-1"></div>
 
-        <label className="cursor-pointer flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition text-xs font-bold shadow-sm shadow-blue-500/20">
-          <Upload className="w-4 h-4" /> Upload
+        {/* Upload Button */}
+        <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-4 rounded-lg transition text-xs font-bold shadow-sm">
+          <Upload className="w-4 h-4" />{" "}
+          <span className="hidden sm:inline">Upload</span>
           <input
             type="file"
             accept=".json"
@@ -215,9 +274,10 @@ export default function UIOverlay() {
           />
         </label>
 
+        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition text-slate-700 dark:text-white"
+          className="w-9 h-9 flex items-center justify-center bg-(--bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main)"
         >
           {isDarkMode ? (
             <Sun className="w-4 h-4" />

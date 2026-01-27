@@ -15,18 +15,17 @@ export default function FilterPanel() {
   const { isFilterPanelOpen, activeFilters, toggleFilter, resetFilters, cy } =
     useGraphStore();
 
-  // Apply filters whenever state changes
   useEffect(() => {
     if (cy) applyFiltersToGraph(cy, activeFilters);
   }, [activeFilters, cy]);
 
   const renderSection = (title: string, items: Record<string, any>) => (
     <div className="mb-4">
-      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 pb-1 mb-2">
+      {/* UPDATED: Text and Border variables */}
+      <h3 className="text-[10px] font-bold text-(--text-sub) uppercase tracking-wider border-b border-(--border) pb-1 mb-2">
         {title}
       </h3>
       {Object.entries(items).map(([key, config]) => {
-        // Handle color depending if it's a module string or object
         const color =
           typeof config === "string" ? config : config.color || "#94a3b8";
         const label = typeof config === "string" ? key : config.label;
@@ -50,9 +49,8 @@ export default function FilterPanel() {
             >
               <Check className="w-2.5 h-2.5 text-white" />
             </div>
-            <span className="font-semibold text-slate-700 dark:text-slate-200">
-              {label}
-            </span>
+            {/* UPDATED: Text variable */}
+            <span className="font-semibold text-(--text-main)">{label}</span>
           </div>
         );
       })}
@@ -62,12 +60,13 @@ export default function FilterPanel() {
   return (
     <div
       className={clsx(
-        "absolute top-20 left-6 w-56 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
+        // UPDATED: Background and Border variables
+        "absolute top-20 left-6 w-56 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
         isFilterPanelOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <div className="p-4 sticky top-0 bg-inherit z-10 flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50">
-        <span className="text-xs font-bold text-slate-500">FILTERS</span>
+      <div className="p-4 sticky top-0 bg-inherit z-10 flex justify-between items-center border-b border-(--border)">
+        <span className="text-xs font-bold text-(--text-sub)">FILTERS</span>
         <button
           onClick={resetFilters}
           className="text-xs text-blue-500 font-semibold hover:text-blue-600"
