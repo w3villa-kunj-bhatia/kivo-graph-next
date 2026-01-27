@@ -56,6 +56,8 @@ export const applyFiltersToGraph = (
   cy: cytoscape.Core,
   activeFilters: Set<string>,
 ) => {
+  if (!cy || cy.destroyed()) return;
+
   cy.batch(() => {
     cy.nodes().forEach((n) => {
       if (n.isParent()) {

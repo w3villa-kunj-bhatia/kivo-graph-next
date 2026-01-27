@@ -25,17 +25,20 @@ interface GraphState {
   isFilterPanelOpen: boolean;
   activeFilters: Set<string>;
 
-  // --- Company Context ---
+  // --- NEW: Company Context ---
   selectedCompanyId: string | null;
-  allowedModules: Set<string>; // The "Hard Limit" set by Admin
-  // -----------------------
+  allowedModules: Set<string>;
+  // ---------------------------
 
   popup: {
     isOpen: boolean;
     data: PopupData | null;
   };
 
-  setCy: (cy: cytoscape.Core) => void;
+  // --- FIX: Allow null here ---
+  setCy: (cy: cytoscape.Core | null) => void;
+  // ---------------------------
+
   setStats: (n: number, e: number) => void;
   toggleTheme: () => void;
   toggleFilterPanel: () => void;
@@ -43,8 +46,6 @@ interface GraphState {
   resetFilters: () => void;
   openPopup: (data: PopupData) => void;
   closePopup: () => void;
-
-  // --- Context Action ---
   setCompanyContext: (companyId: string | null, allowedKeys: string[]) => void;
 }
 
@@ -55,7 +56,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   isDarkMode: true,
   isFilterPanelOpen: false,
 
-  // Default: All filters active
   activeFilters: new Set([
     ...Object.keys(COLORS),
     ...Object.keys(COMPLEXITY_TYPES),
@@ -63,7 +63,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     ...Object.keys(TOPOLOGY_TYPES),
   ]),
 
-  // Default: No company selected, so ALL modules are allowed
   selectedCompanyId: null,
   allowedModules: new Set(Object.keys(COLORS)),
 
@@ -94,7 +93,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
   resetFilters: () =>
     set((s) => ({
-      // Reset only to what is ALLOWED for the current company
       activeFilters: new Set([
         ...Array.from(s.allowedModules),
         ...Object.keys(COMPLEXITY_TYPES),
@@ -114,21 +112,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     set({ popup: { isOpen: false, data: null } });
   },
 
-  // --- FIXED LOGIC HERE ---
   setCompanyContext: (companyId, allowedKeys) => {
     const { cy } = get();
-
-    // 1. Determine Effective Keys
-    // If companyId exists, use its keys. If NULL, use ALL COLORS.
     const effectiveKeys = companyId ? allowedKeys : Object.keys(COLORS);
-
     const newAllowed = new Set(effectiveKeys);
 
-    // 2. Update State
     set({
       selectedCompanyId: companyId,
       allowedModules: newAllowed,
-      // Reset active filters to match the new allowed list
       activeFilters: new Set([
         ...effectiveKeys,
         ...Object.keys(COMPLEXITY_TYPES),
@@ -137,18 +128,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       ]),
     });
 
-    // 3. Update Cytoscape Graph
-    if (cy) {
+    if (cy && !cy.destroyed()) {
       cy.batch(() => {
-        // Hide everything first
         cy.elements().style("display", "none");
-
-        // Loop over EFFECTIVE keys (this was the bug fix)
         effectiveKeys.forEach((key) => {
           cy.elements(`[module = "${key}"]`).style("display", "element");
         });
-
-        // Show edges
         cy.edges().style("display", "element");
       });
     }

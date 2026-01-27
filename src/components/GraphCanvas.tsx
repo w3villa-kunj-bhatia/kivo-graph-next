@@ -67,7 +67,10 @@ export default function GraphCanvas() {
     });
 
     return () => {
-      if (cyRef.current) cyRef.current.destroy();
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        setCy(null); 
+      }
     };
   }, [setCy]);
 
