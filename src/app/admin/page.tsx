@@ -2,10 +2,10 @@
 
 import { useActionState, useEffect, useState, useRef } from "react";
 import {
-  createCompany,
+  saveCompany,
   deleteCompany,
   getCompanies,
-  getStatistics, // Import the new action
+  getStatistics,
 } from "@/app/actions/companyActions";
 import { COLORS } from "@/utils/constants";
 import { useSession, signOut } from "next-auth/react";
@@ -18,32 +18,84 @@ import {
   Users,
   Layers,
   TrendingUp,
+  Pencil,
+  X,
 } from "lucide-react";
 
 const AVAILABLE_MODULES = Object.keys(COLORS);
 
 export default function AdminPage() {
+  // Data State
   const [companies, setCompanies] = useState<any[]>([]);
-  // --- NEW: Stats State ---
   const [stats, setStats] = useState({
     companyCount: 0,
     userCount: 0,
     moduleCount: 0,
   });
 
+  // Form State for Editing
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formModules, setFormModules] = useState<Set<string>>(new Set());
+
+  // Auth & UI State
   const { data: session } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const [state, formAction, isPending] = useActionState(createCompany, {
+  // --- FIXED HOOK HERE ---
+  const [state, formAction, isPending] = useActionState(saveCompany, {
     success: false,
     message: "",
+    timestamp: 0, // Added to satisfy TypeScript
   });
 
-  // Fetch Data
+  // 1. Fetch Data on Mount & After Success
   useEffect(() => {
     fetchData();
-  }, [state?.success]);
+    if (state?.success) {
+      resetForm();
+    }
+  }, [state]); // depend on the full state object
+
+  async function fetchData() {
+    const [companyData, statsData] = await Promise.all([
+      getCompanies(),
+      getStatistics(),
+    ]);
+    setCompanies(companyData);
+    setStats(statsData);
+  }
+
+  // 2. Handle Edit Click
+  function handleEdit(company: any) {
+    setEditingId(company._id);
+    setFormName(company.name);
+    setFormModules(new Set(company.allowedModules));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // 3. Handle Form Changes
+  function toggleModule(mod: string) {
+    const newSet = new Set(formModules);
+    if (newSet.has(mod)) newSet.delete(mod);
+    else newSet.add(mod);
+    setFormModules(newSet);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setFormName("");
+    setFormModules(new Set());
+  }
+
+  // 4. Handle Delete
+  async function handleDelete(id: string) {
+    if (confirm("Are you sure you want to delete this company?")) {
+      await deleteCompany(id);
+      fetchData();
+    }
+  }
 
   // Close profile on outside click
   useEffect(() => {
@@ -58,22 +110,6 @@ export default function AdminPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  async function fetchData() {
-    const [companyData, statsData] = await Promise.all([
-      getCompanies(),
-      getStatistics(),
-    ]);
-    setCompanies(companyData);
-    setStats(statsData);
-  }
-
-  async function handleDelete(id: string) {
-    if (confirm("Are you sure?")) {
-      await deleteCompany(id);
-      fetchData(); // Refresh both lists and stats
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -163,14 +199,30 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* --- LEFT: Create Form --- */}
-        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 h-fit shadow-lg">
-          <div className="flex items-center gap-2 mb-6">
-            <TrendingUp className="w-5 h-5 text-orange-500" />
-            <h2 className="text-xl font-semibold">Add New Company</h2>
+        {/* --- LEFT: Create / Edit Form --- */}
+        <div
+          className={`bg-gray-800 p-6 rounded-xl border h-fit shadow-lg transition-colors ${editingId ? "border-orange-500/50" : "border-gray-700"}`}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-orange-500" />
+              <h2 className="text-xl font-semibold">
+                {editingId ? "Edit Company" : "Add New Company"}
+              </h2>
+            </div>
+            {editingId && (
+              <button
+                onClick={resetForm}
+                className="text-xs flex items-center gap-1 bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-gray-300"
+              >
+                <X className="w-3 h-3" /> Cancel
+              </button>
+            )}
           </div>
 
           <form action={formAction} className="space-y-4">
+            {editingId && <input type="hidden" name="id" value={editingId} />}
+
             <div>
               <label className="block text-sm mb-1 text-gray-400">
                 Company Name
@@ -179,6 +231,8 @@ export default function AdminPage() {
                 type="text"
                 name="name"
                 required
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
                 placeholder="e.g. Acme Corp"
                 className="w-full p-2.5 rounded-lg bg-gray-700/50 border border-gray-600 focus:border-orange-500 outline-none text-white transition-all"
               />
@@ -192,15 +246,25 @@ export default function AdminPage() {
                 {AVAILABLE_MODULES.map((mod) => (
                   <label
                     key={mod}
-                    className="flex items-center space-x-2 bg-gray-700/30 p-2 rounded-lg hover:bg-gray-700 cursor-pointer border border-transparent hover:border-gray-600 transition-all"
+                    className={`flex items-center space-x-2 p-2 rounded-lg cursor-pointer border transition-all ${
+                      formModules.has(mod)
+                        ? "bg-orange-500/10 border-orange-500/30"
+                        : "bg-gray-700/30 border-transparent hover:border-gray-600"
+                    }`}
                   >
                     <input
                       type="checkbox"
                       name="modules"
                       value={mod}
+                      checked={formModules.has(mod)}
+                      onChange={() => toggleModule(mod)}
                       className="accent-orange-500 w-4 h-4"
                     />
-                    <span className="text-sm">{mod}</span>
+                    <span
+                      className={`text-sm ${formModules.has(mod) ? "text-orange-200" : "text-gray-300"}`}
+                    >
+                      {mod}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -222,7 +286,13 @@ export default function AdminPage() {
               disabled={isPending}
               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20"
             >
-              {isPending ? "Creating..." : "Create Company"}
+              {isPending
+                ? editingId
+                  ? "Updating..."
+                  : "Creating..."
+                : editingId
+                  ? "Update Company"
+                  : "Create Company"}
             </button>
           </form>
         </div>
@@ -246,10 +316,20 @@ export default function AdminPage() {
               {companies.map((company) => (
                 <div
                   key={company._id}
-                  className="p-4 bg-gray-700/30 rounded-lg border border-gray-700 flex justify-between items-center group hover:bg-gray-700/50 transition-all"
+                  className={`p-4 rounded-lg border flex justify-between items-center group transition-all ${
+                    editingId === company._id
+                      ? "bg-orange-500/10 border-orange-500/50 ring-1 ring-orange-500/30"
+                      : "bg-gray-700/30 border-gray-700 hover:bg-gray-700/50"
+                  }`}
                 >
                   <div>
-                    <h3 className="font-bold text-lg text-white group-hover:text-orange-400 transition-colors">
+                    <h3
+                      className={`font-bold text-lg transition-colors ${
+                        editingId === company._id
+                          ? "text-orange-400"
+                          : "text-white group-hover:text-orange-400"
+                      }`}
+                    >
                       {company.name}
                     </h3>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -274,14 +354,22 @@ export default function AdminPage() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(company._id)}
-                    className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-all"
-                    title="Delete Company"
-                  >
-                    <LogOut className="w-4 h-4 rotate-180" />{" "}
-                    {/* Using LogOut as a generic delete icon variant if Trash isn't imported, but standard Trash is better */}
-                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(company)}
+                      className="text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 p-2 rounded-lg transition-all"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(company._id)}
+                      className="text-gray-400 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-all"
+                    >
+                      <LogOut className="w-4 h-4 rotate-180" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
