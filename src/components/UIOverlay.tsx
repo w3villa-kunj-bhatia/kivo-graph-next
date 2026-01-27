@@ -14,6 +14,7 @@ import { processGraphData } from "@/utils/graphUtils";
 import { useState, useEffect, useMemo } from "react";
 import { COLORS } from "@/utils/constants";
 import { getGraphStyles } from "@/utils/graphStyles";
+import CompanySelector from "./CompanySelector";
 
 export default function UIOverlay() {
   const {
@@ -27,7 +28,6 @@ export default function UIOverlay() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
-
   const [nodeList, setNodeList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -138,6 +138,13 @@ export default function UIOverlay() {
 
   return (
     <div className="absolute top-0 left-0 w-full p-4 pointer-events-none z-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* --- ADDED: Top Center Company Selector --- */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto z-50">
+        <CompanySelector />
+      </div>
+      {/* ------------------------------------------ */}
+
+      {/* Left Side: Title & Stats */}
       <div className="flex gap-4 items-center pointer-events-auto">
         <div className="bg-(--card-bg) backdrop-blur-md p-2 px-4 rounded-xl shadow-lg border border-(--border) flex items-center gap-3">
           <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white">
@@ -165,6 +172,7 @@ export default function UIOverlay() {
         </div>
       </div>
 
+      {/* Right Side: Controls */}
       <div className="bg-(--card-bg) backdrop-blur-md p-2 rounded-xl shadow-lg pointer-events-auto flex flex-wrap gap-2 border border-(--border) items-center">
         <button
           onClick={handleExport}
@@ -187,7 +195,7 @@ export default function UIOverlay() {
           className="h-9 rounded-lg border border-(--border) bg-(--bg) text-(--text-main) text-xs px-2 outline-none cursor-pointer w-32 md:w-48 focus:border-(--accent)"
           onChange={(e) => jumpToNode(e.target.value)}
           defaultValue=""
-          style={{ appearance: "auto" }} 
+          style={{ appearance: "auto" }}
         >
           <option value="" disabled>
             Select Node ({nodeList.length})...
@@ -209,6 +217,7 @@ export default function UIOverlay() {
             ))}
         </select>
 
+        {/* Search */}
         <div className="relative group">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-(--text-sub)" />
@@ -246,6 +255,7 @@ export default function UIOverlay() {
 
         <div className="w-px h-6 bg-(--border) mx-1"></div>
 
+        {/* Upload */}
         <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-4 rounded-lg transition text-xs font-bold shadow-sm">
           <Upload className="w-4 h-4" />{" "}
           <span className="hidden sm:inline">Upload</span>
@@ -257,6 +267,7 @@ export default function UIOverlay() {
           />
         </label>
 
+        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center bg-(--bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main)"

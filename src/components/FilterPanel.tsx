@@ -12,8 +12,17 @@ import { useEffect } from "react";
 import { applyFiltersToGraph } from "@/utils/graphInteraction";
 
 export default function FilterPanel() {
-  const { isFilterPanelOpen, activeFilters, toggleFilter, resetFilters, cy } =
-    useGraphStore();
+  const {
+    isFilterPanelOpen,
+    activeFilters,
+    toggleFilter,
+    resetFilters,
+    cy,
+    // --- ADDED ---
+    allowedModules,
+    selectedCompanyId,
+    // -------------
+  } = useGraphStore();
 
   useEffect(() => {
     if (cy) applyFiltersToGraph(cy, activeFilters);
@@ -25,6 +34,18 @@ export default function FilterPanel() {
         {title}
       </h3>
       {Object.entries(items).map(([key, config]) => {
+        // --- ADDED: Filter logic based on Company Selection ---
+        // If we are rendering the 'Modules' section, and a company is selected,
+        // we hide any module that isn't in the allowedModules set.
+        if (
+          title === "Modules" &&
+          selectedCompanyId &&
+          !allowedModules.has(key)
+        ) {
+          return null;
+        }
+        // ----------------------------------------------------
+
         const color =
           typeof config === "string" ? config : config.color || "#94a3b8";
         const label = typeof config === "string" ? key : config.label;
