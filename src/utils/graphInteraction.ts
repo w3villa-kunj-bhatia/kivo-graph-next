@@ -2,18 +2,15 @@ import cytoscape from "cytoscape";
 
 export const highlightNode = (cy: cytoscape.Core, nodeId: string) => {
   cy.batch(() => {
-    // Dim everything
     cy.elements().removeClass("highlight dimmed");
     cy.elements().addClass("dimmed");
 
     const node = cy.getElementById(nodeId);
 
-    // Highlight neighborhood
     const nbrs = node.neighborhood().add(node);
     nbrs.removeClass("dimmed").addClass("highlight");
     nbrs.edges().addClass("highlight");
 
-    // Highlight parent groups
     node.parent().removeClass("dimmed").addClass("highlight");
     nbrs.nodes().forEach((n) => {
       if (n.isNode() && n.parent().nonempty()) {
@@ -48,7 +45,6 @@ export const traceFlow = (
     path.removeClass("dimmed").addClass("highlight");
     path.edges().addClass("highlight");
 
-    // Highlight groups involved
     path.nodes().forEach((n) => {
       if (n.isNode() && n.parent().nonempty())
         n.parent().removeClass("dimmed").addClass("highlight");
@@ -62,7 +58,6 @@ export const applyFiltersToGraph = (
 ) => {
   cy.batch(() => {
     cy.nodes().forEach((n) => {
-      // If Group
       if (n.isParent()) {
         const mod = n.data("module");
         if (mod && !activeFilters.has(mod)) n.style("display", "none");

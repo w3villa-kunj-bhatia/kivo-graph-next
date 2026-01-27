@@ -62,7 +62,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   toggleTheme: () => {
     set((s) => {
       const newMode = !s.isDarkMode;
-      // FIX: Manually toggle the class on the HTML element for Tailwind
       if (newMode) document.documentElement.classList.add("dark");
       else document.documentElement.classList.remove("dark");
       return { isDarkMode: newMode };
@@ -92,7 +91,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
   openPopup: (data) => set({ popup: { isOpen: true, data } }),
 
-  // FIX: Closing popup now clears graph highlights
   closePopup: () => {
     const { cy } = get();
     if (cy) {

@@ -17,10 +17,8 @@ export default function PopupCard() {
     <Draggable nodeRef={nodeRef} handle=".handle">
       <div
         ref={nodeRef}
-        // UPDATED: Using CSS variables for bg, border
         className="absolute top-24 right-6 w-72 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-2xl z-50 overflow-hidden"
       >
-        {/* Header (Drag Handle) */}
         <div className="handle p-4 border-b border-(--border) flex justify-between items-start cursor-grab active:cursor-grabbing bg-(--bg)/50">
           <div>
             <span
@@ -35,25 +33,22 @@ export default function PopupCard() {
           </div>
           <button
             onClick={closePopup}
-            // UPDATED: Text variables
             className="text-(--text-sub) hover:text-(--text-main) transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-4">
-          <div className="text-[10px] font-bold text-(--text-sub) uppercase mb-2">
+          <div className="text-xs font-bold text-(--text-sub) uppercase mb-2">
             Connections ({data.connections})
           </div>
 
-          <ul className="max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+          <ul className="max-h-150 overflow-y-auto pr-1 custom-scrollbar">
             {data.neighbors.map((n, i) => (
               <li
                 key={i}
-                // UPDATED: Hover and text variables
-                className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-(--border) cursor-pointer text-xs text-(--text-main)"
+                className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-(--border) cursor-pointer text-sm text-(--text-main)"
               >
                 <div
                   className="w-2 h-2 rounded-full shrink-0"

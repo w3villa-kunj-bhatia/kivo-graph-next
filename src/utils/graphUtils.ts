@@ -1,4 +1,3 @@
-// Define interfaces for your raw JSON structure
 interface RawNode {
   data: {
     id: string;
@@ -20,7 +19,6 @@ interface GraphJson {
   edges: RawEdge[];
 }
 
-// 1. Helper to shorten labels
 const cleanLabel = (l: string): string => {
   let s = l
     .replace(/_/g, " ")
@@ -30,11 +28,9 @@ const cleanLabel = (l: string): string => {
   return s.length > 20 ? s.substring(0, 18) + ".." : s;
 };
 
-// 2. Logic to categorize nodes into modules
 export const classifyModule = (id: string, label: string): string => {
   const t = (id + " " + label).toLowerCase();
 
-  // Specific Business Logic Matches
   if (t.match(/attend|leave|holiday|shift|salary|payroll|ctc/)) return "HRMS";
   if (t.match(/candid|interv|applic|hiring|resume|recruit/)) return "ATS";
   if (t.match(/deal|lead|invoice|quote|crm|client|bill/)) return "CRM";
@@ -46,29 +42,24 @@ export const classifyModule = (id: string, label: string): string => {
   return "Utils";
 };
 
-// 3. Main Processing Function
 export const processGraphData = (rawJson: GraphJson) => {
   const nodes: any[] = [];
   const edges: any[] = [];
   const groups = new Set<string>();
 
-  // Typed maps
   const counts: Record<string, number> = {};
   const nodeModuleMap: Record<string, string> = {};
 
-  // Step A: Classify all nodes first
   rawJson.nodes.forEach((n) => {
     const mod = classifyModule(n.data.id, n.data.label);
     nodeModuleMap[n.data.id] = mod;
   });
 
-  // Step B: Count connections for dynamic sizing
   rawJson.edges.forEach((e) => {
     counts[e.data.source] = (counts[e.data.source] || 0) + 1;
     counts[e.data.target] = (counts[e.data.target] || 0) + 1;
   });
 
-  // Step C: Transform Nodes
   rawJson.nodes.forEach((n) => {
     const mod = nodeModuleMap[n.data.id];
     groups.add(mod);
@@ -77,7 +68,6 @@ export const processGraphData = (rawJson: GraphJson) => {
     if (n.data.label.includes("Controller")) arch = "Controller";
     else if (n.data.label.includes("Service")) arch = "Service";
 
-    // Calculate complexity
     const degree = counts[n.data.id] || 0;
     const complexity = n.data.complexity || (degree > 5 ? "high" : "normal");
 
@@ -87,7 +77,7 @@ export const processGraphData = (rawJson: GraphJson) => {
         label: cleanLabel(n.data.label),
         fullLabel: n.data.label,
         module: mod,
-        parent: "g_" + mod, // Links to the Group Node
+        parent: "g_" + mod, 
         weight: degree,
         complexity: complexity,
         archetype: arch,
@@ -95,7 +85,6 @@ export const processGraphData = (rawJson: GraphJson) => {
     });
   });
 
-  // Step D: Transform Edges
   rawJson.edges.forEach((e) => {
     const sourceMod = nodeModuleMap[e.data.source];
     const targetMod = nodeModuleMap[e.data.target];
@@ -110,7 +99,6 @@ export const processGraphData = (rawJson: GraphJson) => {
     });
   });
 
-  // Step E: Create Group Nodes (The parents)
   groups.forEach((g) => {
     nodes.push({
       data: {

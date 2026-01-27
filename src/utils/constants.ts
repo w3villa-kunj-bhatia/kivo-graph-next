@@ -16,7 +16,7 @@ export const COMPLEXITY_TYPES = {
 };
 
 export const ARCHETYPES = {
-  Controller: { label: "Controllers", icon: "gamepad" }, // using lucide names later
+  Controller: { label: "Controllers", icon: "gamepad" },
   Service: { label: "Services", icon: "cogs" },
   Model: { label: "Models / Entities", icon: "database" },
 };

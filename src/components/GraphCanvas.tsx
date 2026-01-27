@@ -18,7 +18,6 @@ export default function GraphCanvas() {
   const { setCy, isDarkMode, openPopup, closePopup, popup } = useGraphStore();
   const cyRef = useRef<cytoscape.Core | null>(null);
 
-  // 1. Initialize Graph
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -39,16 +38,12 @@ export default function GraphCanvas() {
 
     setCy(cyRef.current);
 
-    // --- EVENT LISTENERS ---
-
-    // Tap on Background: Clear & Close
     cyRef.current.on("tap", (e) => {
       if (e.target === cyRef.current) {
         closePopup();
       }
     });
 
-    // Tap on Node
     cyRef.current.on("tap", "node[!isGroup]", (e) => {
       const node = e.target;
       const d = node.data();
@@ -75,14 +70,12 @@ export default function GraphCanvas() {
     };
   }, [setCy]);
 
-  // 2. THEME FIX: Force update styles when Dark Mode changes
   useEffect(() => {
     if (cyRef.current) {
       cyRef.current.json({ style: getGraphStyles(isDarkMode) } as any);
     }
   }, [isDarkMode]);
 
-  // 3. Listen for Popup Close to Deselect
   useEffect(() => {
     if (!popup.isOpen && cyRef.current) {
       clearHighlights(cyRef.current);
@@ -93,7 +86,6 @@ export default function GraphCanvas() {
   return (
     <div
       ref={containerRef}
-      // UPDATED: Using CSS variable for background to match globals.css
       className="w-screen h-screen absolute top-0 left-0 z-0 bg-(--bg) transition-colors duration-300"
     />
   );

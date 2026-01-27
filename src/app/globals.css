@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  /* Default (Light) Theme Variables from Reference */
   --bg: #f8fafc;
   --card-bg: rgba(255, 255, 255, 0.95);
   --text-main: #0f172a;
@@ -13,7 +12,6 @@
   --input-bg: #ffffff;
 }
 
-/* Dark Mode Variables */
 .dark {
   --bg: #0f172a;
   --card-bg: rgba(30, 41, 59, 0.95);
@@ -34,7 +32,6 @@ body {
     color 0.3s ease;
 }
 
-/* Ensure form elements inherit correct theme styles */
 select,
 input {
   background-color: var(--input-bg);
@@ -42,9 +39,31 @@ input {
   border-color: var(--border);
 }
 
-/* Fix for native dropdown options in dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-  }
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid var(--bg); 
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-sub);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-sub);
 }

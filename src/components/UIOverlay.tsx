@@ -28,29 +28,23 @@ export default function UIOverlay() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
 
-  // New State for the Node Dropdown
   const [nodeList, setNodeList] = useState<any[]>([]);
 
-  // --- THEME SYNC ---
   useEffect(() => {
-    // 1. Update DOM for Tailwind
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
 
-    // 2. Update Cytoscape Graph Styles
     if (cy) {
       cy.style(getGraphStyles(isDarkMode));
     }
   }, [isDarkMode, cy]);
 
-  // --- POPULATE DROPDOWN ---
   useEffect(() => {
     if (!cy) return;
 
-    // Extract non-group nodes for the list
     const nodes = cy.nodes("[!isGroup]").map((n) => ({
       id: n.id(),
       label: n.data("label"),
@@ -58,12 +52,10 @@ export default function UIOverlay() {
       module: n.data("module") || "Other",
     }));
 
-    // Sort alphabetically
     nodes.sort((a, b) => a.fullLabel.localeCompare(b.fullLabel));
     setNodeList(nodes);
   }, [nodesCount, cy]);
 
-  // Group nodes by module for the <optgroup> in dropdown
   const groupedNodes = useMemo(() => {
     const groups: Record<string, any[]> = {};
     nodeList.forEach((node) => {
@@ -73,7 +65,6 @@ export default function UIOverlay() {
     return groups;
   }, [nodeList]);
 
-  // --- HANDLERS ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !cy) return;
@@ -129,7 +120,6 @@ export default function UIOverlay() {
     }
   };
 
-  // Search filter effect
   useEffect(() => {
     if (!searchTerm || !cy) {
       setSuggestions([]);
@@ -148,7 +138,6 @@ export default function UIOverlay() {
 
   return (
     <div className="absolute top-0 left-0 w-full p-4 pointer-events-none z-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      {/* LEFT: Title & Stats */}
       <div className="flex gap-4 items-center pointer-events-auto">
         <div className="bg-(--card-bg) backdrop-blur-md p-2 px-4 rounded-xl shadow-lg border border-(--border) flex items-center gap-3">
           <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white">
@@ -164,7 +153,6 @@ export default function UIOverlay() {
           </div>
         </div>
 
-        {/* Legend (Hidden on mobile) */}
         <div className="hidden md:flex bg-(--card-bg) backdrop-blur-md p-2 px-4 rounded-xl shadow-lg border border-(--border) gap-6 h-12 items-center">
           <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub)">
             <div className="w-6 h-0 border-t-2 border-solid border-(--text-sub) opacity-60"></div>{" "}
@@ -177,9 +165,7 @@ export default function UIOverlay() {
         </div>
       </div>
 
-      {/* RIGHT: Controls */}
       <div className="bg-(--card-bg) backdrop-blur-md p-2 rounded-xl shadow-lg pointer-events-auto flex flex-wrap gap-2 border border-(--border) items-center">
-        {/* Export Button */}
         <button
           onClick={handleExport}
           className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main)"
@@ -188,7 +174,6 @@ export default function UIOverlay() {
           <Camera className="w-4 h-4" />
         </button>
 
-        {/* Filter Toggle */}
         <button
           onClick={toggleFilterPanel}
           className="flex items-center gap-2 text-xs font-semibold px-3 p-2 rounded-lg transition hover:bg-(--border) text-(--text-main)"
@@ -202,7 +187,7 @@ export default function UIOverlay() {
           className="h-9 rounded-lg border border-(--border) bg-(--bg) text-(--text-main) text-xs px-2 outline-none cursor-pointer w-32 md:w-48 focus:border-(--accent)"
           onChange={(e) => jumpToNode(e.target.value)}
           defaultValue=""
-          style={{ appearance: "auto" }} // Ensure native dropdown arrow shows
+          style={{ appearance: "auto" }} 
         >
           <option value="" disabled>
             Select Node ({nodeList.length})...
@@ -224,7 +209,6 @@ export default function UIOverlay() {
             ))}
         </select>
 
-        {/* Search Bar */}
         <div className="relative group">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-(--text-sub)" />
@@ -262,7 +246,6 @@ export default function UIOverlay() {
 
         <div className="w-px h-6 bg-(--border) mx-1"></div>
 
-        {/* Upload Button */}
         <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-4 rounded-lg transition text-xs font-bold shadow-sm">
           <Upload className="w-4 h-4" />{" "}
           <span className="hidden sm:inline">Upload</span>
@@ -274,7 +257,6 @@ export default function UIOverlay() {
           />
         </label>
 
-        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center bg-(--bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main)"

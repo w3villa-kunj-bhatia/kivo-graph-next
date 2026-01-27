@@ -21,8 +21,7 @@ export default function FilterPanel() {
 
   const renderSection = (title: string, items: Record<string, any>) => (
     <div className="mb-4">
-      {/* UPDATED: Text and Border variables */}
-      <h3 className="text-[10px] font-bold text-(--text-sub) uppercase tracking-wider border-b border-(--border) pb-1 mb-2">
+      <h3 className="text-[10px] font-bold text-(--text-sub) uppercase tracking-wider border-b border-(--border) pb-1 mb-4">
         {title}
       </h3>
       {Object.entries(items).map(([key, config]) => {
@@ -49,7 +48,6 @@ export default function FilterPanel() {
             >
               <Check className="w-2.5 h-2.5 text-white" />
             </div>
-            {/* UPDATED: Text variable */}
             <span className="font-semibold text-(--text-main)">{label}</span>
           </div>
         );
@@ -60,8 +58,7 @@ export default function FilterPanel() {
   return (
     <div
       className={clsx(
-        // UPDATED: Background and Border variables
-        "absolute top-20 left-6 w-56 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
+        "absolute top-25 left-6 w-56 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
         isFilterPanelOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
