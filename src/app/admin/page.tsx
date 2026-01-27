@@ -19,6 +19,7 @@ import {
   Layers,
   TrendingUp,
   Pencil,
+  Trash,
   X,
 } from "lucide-react";
 
@@ -47,7 +48,7 @@ export default function AdminPage() {
   const [state, formAction, isPending] = useActionState(saveCompany, {
     success: false,
     message: "",
-    timestamp: 0, // Added to satisfy TypeScript
+    timestamp: 0,
   });
 
   // 1. Fetch Data on Mount & After Success
@@ -56,7 +57,7 @@ export default function AdminPage() {
     if (state?.success) {
       resetForm();
     }
-  }, [state]); // depend on the full state object
+  }, [state]);
 
   async function fetchData() {
     const [companyData, statsData] = await Promise.all([
@@ -367,7 +368,7 @@ export default function AdminPage() {
                       onClick={() => handleDelete(company._id)}
                       className="text-gray-400 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-all"
                     >
-                      <LogOut className="w-4 h-4 rotate-180" />
+                      <Trash className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
