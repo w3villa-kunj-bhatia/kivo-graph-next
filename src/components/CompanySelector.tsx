@@ -21,8 +21,6 @@ export default function CompanySelector() {
     const id = e.target.value;
 
     if (!id) {
-      // RESET: Pass null and empty array.
-      // The store will detect null and auto-fill with Object.keys(COLORS)
       setCompanyContext(null, []);
       return;
     }

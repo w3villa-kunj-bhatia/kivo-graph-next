@@ -55,7 +55,6 @@ export default function SignupPage() {
             />
           </div>
 
-          {/* Admin Checkbox REMOVED for security */}
 
           <button className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-bold transition">
             Sign Up

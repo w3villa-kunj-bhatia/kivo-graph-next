@@ -26,11 +26,9 @@ import {
 
 const AVAILABLE_MODULES = Object.keys(COLORS);
 
-// Sort Options Type
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
 
 export default function AdminPage() {
-  // Data State
   const [companies, setCompanies] = useState<any[]>([]);
   const [stats, setStats] = useState({
     companyCount: 0,
@@ -38,16 +36,12 @@ export default function AdminPage() {
     moduleCount: 0,
   });
 
-  // --- NEW: Sort State ---
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  // ----------------------
-
-  // Form State for Editing
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formModules, setFormModules] = useState<Set<string>>(new Set());
 
-  // Auth & UI State
   const { data: session } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -74,9 +68,7 @@ export default function AdminPage() {
     setStats(statsData);
   }
 
-  // --- NEW: Sorting Logic ---
   const sortedCompanies = useMemo(() => {
-    // Create a shallow copy to avoid mutating state directly
     const sorted = [...companies];
 
     switch (sortOption) {
@@ -96,7 +88,6 @@ export default function AdminPage() {
         return sorted;
     }
   }, [companies, sortOption]);
-  // -------------------------
 
   function handleEdit(company: any) {
     setEditingId(company._id);
@@ -140,7 +131,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
-      {/* Header & Stats Sections (Unchanged) */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-orange-500">Admin Dashboard</h1>
         <div className="flex items-center gap-4">
@@ -218,7 +208,6 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* LEFT: Create / Edit Form */}
         <div
           className={`bg-gray-800 p-6 rounded-xl border h-fit shadow-lg transition-colors ${editingId ? "border-orange-500/50" : "border-gray-700"}`}
         >
@@ -312,12 +301,10 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* RIGHT: Existing Companies with Sort */}
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Existing Companies</h2>
 
-            {/* --- NEW: Sort Dropdown --- */}
             <div className="flex items-center gap-2">
               <ArrowUpDown className="w-4 h-4 text-gray-400" />
               <select
@@ -334,7 +321,6 @@ export default function AdminPage() {
                 {companies.length}
               </span>
             </div>
-            {/* ------------------------- */}
           </div>
 
           {sortedCompanies.length === 0 ? (

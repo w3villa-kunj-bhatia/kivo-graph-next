@@ -32,7 +32,7 @@ export default function Navbar() {
     toggleFilterPanel,
   } = useGraphStore();
 
-  const { data: session, status } = useSession(); // Get Auth State
+  const { data: session, status } = useSession(); 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +40,6 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [nodeList, setNodeList] = useState<any[]>([]);
 
-  // Toggle Dark Mode
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -53,7 +52,6 @@ export default function Navbar() {
     }
   }, [isDarkMode, cy]);
 
-  // Close profile dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -67,7 +65,6 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sync Nodes List
   useEffect(() => {
     if (!cy) return;
 
@@ -82,7 +79,6 @@ export default function Navbar() {
     setNodeList(nodes);
   }, [nodesCount, cy]);
 
-  // Group Nodes for Dropdown
   const groupedNodes = useMemo(() => {
     const groups: Record<string, any[]> = {};
     nodeList.forEach((node) => {
@@ -92,7 +88,6 @@ export default function Navbar() {
     return groups;
   }, [nodeList]);
 
-  // Handlers
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !cy) return;
@@ -167,7 +162,6 @@ export default function Navbar() {
   return (
     <div className="absolute top-0 left-0 w-full z-50 pointer-events-auto">
       <nav className="relative w-full bg-(--card-bg)/90 backdrop-blur-md border-b border-(--border) px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all">
-        {/* LEFT: Title */}
         <div className="flex items-center gap-6 z-10">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm">
@@ -197,14 +191,11 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* CENTER: Company Selector */}
         <div className="z-10 w-full md:w-auto flex justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2">
           <CompanySelector />
         </div>
 
-        {/* RIGHT: Controls */}
         <div className="flex flex-wrap items-center gap-2 z-10 justify-end w-full md:w-auto">
-          {/* Export */}
           <button
             onClick={handleExport}
             className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border)"
@@ -213,7 +204,6 @@ export default function Navbar() {
             <Camera className="w-4 h-4" />
           </button>
 
-          {/* Filter */}
           <button
             onClick={toggleFilterPanel}
             className="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border)"
@@ -223,7 +213,6 @@ export default function Navbar() {
             <span className="hidden sm:inline">Filters</span>
           </button>
 
-          {/* Node Dropdown */}
           <select
             className="h-9 rounded-lg border border-(--border) bg-(--bg) text-(--text-main) text-xs px-2 outline-none cursor-pointer w-32 md:w-40 focus:border-(--accent) focus:ring-1 focus:ring-(--accent)"
             onChange={(e) => jumpToNode(e.target.value)}
@@ -249,7 +238,6 @@ export default function Navbar() {
               ))}
           </select>
 
-          {/* Search */}
           <div className="relative group">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-(--text-sub)" />
@@ -287,7 +275,6 @@ export default function Navbar() {
 
           <div className="hidden sm:block w-px h-6 bg-(--border) mx-1"></div>
 
-          {/* Upload */}
           <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-4 rounded-lg transition text-xs font-bold shadow-sm">
             <Upload className="w-4 h-4" />{" "}
             <span className="hidden sm:inline">Upload</span>
@@ -299,7 +286,6 @@ export default function Navbar() {
             />
           </label>
 
-          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             className="w-9 h-9 flex items-center justify-center bg-(--bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main)"
@@ -311,13 +297,10 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* --- PROFILE DROPDOWN --- */}
           <div className="relative" ref={profileRef}>
             {status === "loading" ? (
-              // Loading State Skeleton
               <div className="w-9 h-9 rounded-full bg-gray-500/20 animate-pulse"></div>
             ) : session ? (
-              // Logged In: Show Avatar/User Icon
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="w-9 h-9 flex items-center justify-center bg-orange-600 text-white rounded-full hover:bg-orange-700 transition shadow-sm ring-2 ring-transparent focus:ring-orange-400"
@@ -325,7 +308,6 @@ export default function Navbar() {
                 <User className="w-5 h-5" />
               </button>
             ) : (
-              // Logged Out: Show Login Button
               <button
                 onClick={() => signIn()}
                 className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition"
@@ -334,10 +316,8 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Dropdown Menu */}
             {isProfileOpen && session && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-(--card-bg) border border-(--border) rounded-xl shadow-2xl p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                {/* User Info Header */}
                 <div className="px-3 py-2 border-b border-(--border) mb-1">
                   <p className="text-sm font-bold text-(--text-main) truncate">
                     {session.user?.name}
@@ -350,7 +330,6 @@ export default function Navbar() {
                   </span>
                 </div>
 
-                {/* Admin Link (Only if Admin) */}
                 {session.user?.role === "admin" && (
                   <Link
                     href="/admin"
@@ -360,7 +339,6 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                {/* Sign Out */}
                 <button
                   onClick={() => signOut()}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition w-full text-left"
@@ -370,7 +348,6 @@ export default function Navbar() {
               </div>
             )}
           </div>
-          {/* ------------------------- */}
         </div>
       </nav>
     </div>

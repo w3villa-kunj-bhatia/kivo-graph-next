@@ -23,12 +23,11 @@ export async function registerUser(formData: FormData) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // FORCE ROLE TO 'user'
     await User.create({
       name,
       email,
       password: hashedPassword,
-      role: "user", // <--- Hardcoded security
+      role: "user",
     });
 
     return { success: true };

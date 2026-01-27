@@ -25,19 +25,15 @@ interface GraphState {
   isFilterPanelOpen: boolean;
   activeFilters: Set<string>;
 
-  // --- NEW: Company Context ---
   selectedCompanyId: string | null;
   allowedModules: Set<string>;
-  // ---------------------------
 
   popup: {
     isOpen: boolean;
     data: PopupData | null;
   };
 
-  // --- FIX: Allow null here ---
   setCy: (cy: cytoscape.Core | null) => void;
-  // ---------------------------
 
   setStats: (n: number, e: number) => void;
   toggleTheme: () => void;

@@ -6,8 +6,6 @@ import Company from "@/models/Company";
 import User from "@/models/User";
 import { COLORS } from "@/utils/constants";
 
-// ... (keep getStatistics and getCompanies as they are) ...
-
 export async function getStatistics() {
   await dbConnect();
   try {
@@ -36,7 +34,6 @@ export async function getCompanies() {
   }
 }
 
-// --- UPDATED SAVE FUNCTION ---
 export async function saveCompany(prevState: any, formData: FormData) {
   await dbConnect();
 
@@ -86,7 +83,6 @@ export async function saveCompany(prevState: any, formData: FormData) {
   }
 }
 
-// ... (keep deleteCompany as is) ...
 export async function deleteCompany(companyId: string) {
   await dbConnect();
   await Company.findByIdAndDelete(companyId);

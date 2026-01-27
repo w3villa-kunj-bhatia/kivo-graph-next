@@ -5,7 +5,6 @@ export const authConfig = {
     signIn: "/login",
   },
   callbacks: {
-    // 1. Route Protection (Runs on Edge)
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isAuthPage =
@@ -14,12 +13,10 @@ export const authConfig = {
       const isAdminPage = nextUrl.pathname.startsWith("/admin");
       const role = auth?.user?.role;
 
-      // Redirect logged-in users away from auth pages
       if (isAuthPage && isLoggedIn) {
         return Response.redirect(new URL("/admin", nextUrl));
       }
 
-      // Protect Admin Routes
       if (isAdminPage) {
         if (!isLoggedIn) return false;
         if (role !== "admin") {
@@ -29,14 +26,12 @@ export const authConfig = {
 
       return true;
     },
-    // 2. Add Role to Token
     jwt({ token, user }) {
       if (user) {
         token.role = user.role;
       }
       return token;
     },
-    // 3. Add Role to Session
     session({ session, token }) {
       if (session.user) {
         session.user.role = token.role as string;
@@ -45,5 +40,5 @@ export const authConfig = {
       return session;
     },
   },
-  providers: [], // Providers added in auth.ts
+  providers: [], 
 } satisfies NextAuthConfig;
