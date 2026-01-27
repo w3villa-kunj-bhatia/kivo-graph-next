@@ -15,6 +15,7 @@ if (typeof cytoscape("core", "expandCollapse") === "undefined") {
 
 export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Get popup state to detect closing
   const { setCy, isDarkMode, openPopup, closePopup, popup } = useGraphStore();
   const cyRef = useRef<cytoscape.Core | null>(null);
 
@@ -30,7 +31,6 @@ export default function GraphCanvas() {
       wheelSensitivity: 0.2,
     });
 
-    // Initialize Extension
     (cyRef.current as any).expandCollapse({
       layoutBy: null,
       fisheye: false,
@@ -45,7 +45,7 @@ export default function GraphCanvas() {
     // Tap on Background: Clear & Close
     cyRef.current.on("tap", (e) => {
       if (e.target === cyRef.current) {
-        closePopup(); // This will trigger the cleanup effect below
+        closePopup();
       }
     });
 
@@ -79,16 +79,17 @@ export default function GraphCanvas() {
   // 2. THEME FIX: Force update styles when Dark Mode changes
   useEffect(() => {
     if (cyRef.current) {
+      // Cast to 'any' to allow partial JSON update
       cyRef.current.json({ style: getGraphStyles(isDarkMode) } as any);
     }
   }, [isDarkMode]);
 
-  // 3. DESELECTION FIX: Listen for Popup Close
+  // 3. NEW: Listen for Popup Close to Deselect
   useEffect(() => {
     if (!popup.isOpen && cyRef.current) {
-      // Clear visual highlights
+      // Clear visual highlights (dimming)
       clearHighlights(cyRef.current);
-      // Deselect the actual node in Cytoscape logic
+      // Clear actual Cytoscape selection
       cyRef.current.elements().unselect();
     }
   }, [popup.isOpen]);

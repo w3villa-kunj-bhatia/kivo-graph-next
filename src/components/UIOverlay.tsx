@@ -11,7 +11,7 @@ import {
   Projector,
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react"; // <--- Ensure useEffect is imported
 import { COLORS } from "@/utils/constants";
 
 export default function UIOverlay() {
@@ -26,9 +26,20 @@ export default function UIOverlay() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
 
-  // ... handleFileUpload (Same as previous) ...
+  // --- THEME SYNC FIX ---
+  // This forces the <html> tag to update when isDarkMode changes
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
+
+  // ... (Keep the rest of your existing code: handleFileUpload, handleExport, etc.)
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Paste your existing file upload logic here (it was correct)
+    // ... your existing upload logic
     const file = e.target.files?.[0];
     if (!file || !cy) return;
     const reader = new FileReader();
@@ -39,6 +50,7 @@ export default function UIOverlay() {
         cy.elements().remove();
         cy.add(elements.nodes);
         cy.add(elements.edges);
+        // Cast to 'any' to fix strict type error
         const layoutConfig: any = {
           name: "fcose",
           animate: true,
@@ -70,7 +82,7 @@ export default function UIOverlay() {
     link.click();
   };
 
-  // Search Logic with Suggestions
+  // Search Logic
   useEffect(() => {
     if (!searchTerm || !cy) {
       setSuggestions([]);
@@ -84,15 +96,16 @@ export default function UIOverlay() {
           .includes(searchTerm.toLowerCase()),
       )
       .map((n) => n.data());
-    setSuggestions(matches.slice(0, 10)); // Limit to 10
+    setSuggestions(matches.slice(0, 10));
   }, [searchTerm, cy]);
 
   const jumpToNode = (id: string) => {
     if (!cy) return;
     const node = cy.getElementById(id);
     if (node.nonempty()) {
-      cy.animate({ zoom: 1.5, center: { eles: node }, duration: 500 });
-      node.emit("tap"); // Trigger the popup
+      cy.zoom({ level: 1.5, position: node.position() }); // Instant jump
+      cy.center(node);
+      node.emit("tap");
       setSuggestions([]);
       setSearchTerm("");
     }
@@ -100,7 +113,18 @@ export default function UIOverlay() {
 
   return (
     <div className="absolute top-0 left-0 w-full p-4 pointer-events-none z-50 flex justify-between items-start">
-      {/* LEFT NAV */}
+      {/* ... Your existing JSX for Left Nav, Legend, Right Nav ... */}
+      {/* Just ensuring the Theme Button calls toggleTheme correctly */}
+      {/* Example of where the button is:
+          <div className="bg-white/90 dark:bg-slate-800/90 ...">
+             ...
+             <button onClick={toggleTheme} ...>
+                {isDarkMode ? <Sun /> : <Moon />}
+             </button>
+          </div>
+       */}
+      {/* PASTE YOUR EXISTING JSX RETURN HERE (It was correct in previous steps) */}
+
       <div className="flex gap-4 items-center pointer-events-auto">
         <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 px-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
           <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white">
@@ -116,7 +140,6 @@ export default function UIOverlay() {
           </div>
         </div>
 
-        {/* Legend */}
         <div className="hidden md:flex bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 px-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 gap-6 h-12 items-center">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
             <div className="w-6 h-0 border-t-2 border-slate-400"></div> Direct
@@ -128,7 +151,6 @@ export default function UIOverlay() {
         </div>
       </div>
 
-      {/* RIGHT NAV */}
       <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 rounded-xl shadow-lg pointer-events-auto flex gap-2 border border-slate-200 dark:border-slate-700 items-center">
         <button
           onClick={handleExport}
@@ -157,7 +179,6 @@ export default function UIOverlay() {
               className="pl-9 pr-3 py-2 text-sm bg-slate-100 dark:bg-slate-900 border-none rounded-lg focus:ring-2 ring-blue-500 outline-none dark:text-white w-48 transition-all focus:w-64"
             />
           </div>
-          {/* Suggestions Dropdown */}
           {suggestions.length > 0 && (
             <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto">
               {suggestions.map((s) => (
