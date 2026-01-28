@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import cytoscape from "cytoscape";
 import {
   COLORS,
@@ -24,6 +25,8 @@ interface GraphState {
 
   graphData: { nodes: any[]; edges: any[] } | null;
 
+  nodePositions: Record<string, { x: number; y: number }>;
+
   isFilterPanelOpen: boolean;
   activeFilters: Set<string>;
 
@@ -38,6 +41,10 @@ interface GraphState {
   setCy: (cy: cytoscape.Core | null) => void;
   setGraphData: (data: { nodes: any[]; edges: any[] } | null) => void;
 
+  setNodePositions: (
+    positions: Record<string, { x: number; y: number }>,
+  ) => void;
+
   setStats: (n: number, e: number) => void;
   toggleTheme: () => void;
   toggleFilterPanel: () => void;
@@ -48,95 +55,116 @@ interface GraphState {
   setCompanyContext: (companyId: string | null, allowedKeys: string[]) => void;
 }
 
-export const useGraphStore = create<GraphState>((set, get) => ({
-  cy: null,
-  nodesCount: 0,
-  edgesCount: 0,
-  isDarkMode: true,
-  graphData: null,
-  isFilterPanelOpen: false,
+export const useGraphStore = create<GraphState>()(
+  persist(
+    (set, get) => ({
+      cy: null,
+      nodesCount: 0,
+      edgesCount: 0,
+      isDarkMode: true,
+      graphData: null,
 
-  activeFilters: new Set([
-    ...Object.keys(COLORS),
-    ...Object.keys(COMPLEXITY_TYPES),
-    ...Object.keys(ARCHETYPES),
-    ...Object.keys(TOPOLOGY_TYPES),
-  ]),
+      nodePositions: {},
 
-  selectedCompanyId: null,
-  allowedModules: new Set(Object.keys(COLORS)),
+      isFilterPanelOpen: false,
 
-  popup: { isOpen: false, data: null },
-
-  setCy: (cy) => set({ cy }),
-  setGraphData: (data) => set({ graphData: data }),
-  setStats: (n, e) => set({ nodesCount: n, edgesCount: e }),
-
-  toggleTheme: () => {
-    set((s) => {
-      const newMode = !s.isDarkMode;
-      if (newMode) document.documentElement.classList.add("dark");
-      else document.documentElement.classList.remove("dark");
-      return { isDarkMode: newMode };
-    });
-  },
-
-  toggleFilterPanel: () =>
-    set((s) => ({ isFilterPanelOpen: !s.isFilterPanelOpen })),
-
-  toggleFilter: (key) =>
-    set((s) => {
-      const newSet = new Set(s.activeFilters);
-      if (newSet.has(key)) newSet.delete(key);
-      else newSet.add(key);
-      return { activeFilters: newSet };
-    }),
-
-  resetFilters: () =>
-    set((s) => ({
       activeFilters: new Set([
-        ...Array.from(s.allowedModules),
+        ...Object.keys(COLORS),
         ...Object.keys(COMPLEXITY_TYPES),
         ...Object.keys(ARCHETYPES),
         ...Object.keys(TOPOLOGY_TYPES),
       ]),
-    })),
 
-  openPopup: (data) => set({ popup: { isOpen: true, data } }),
+      selectedCompanyId: null,
+      allowedModules: new Set(Object.keys(COLORS)),
 
-  closePopup: () => {
-    const { cy } = get();
-    if (cy) {
-      cy.elements().removeClass("highlight dimmed");
-      cy.$(":selected").unselect();
-    }
-    set({ popup: { isOpen: false, data: null } });
-  },
+      popup: { isOpen: false, data: null },
 
-  setCompanyContext: (companyId, allowedKeys) => {
-    const { cy } = get();
-    const effectiveKeys = companyId ? allowedKeys : Object.keys(COLORS);
-    const newAllowed = new Set(effectiveKeys);
+      setCy: (cy) => set({ cy }),
+      setGraphData: (data) => set({ graphData: data }),
+      setStats: (n, e) => set({ nodesCount: n, edgesCount: e }),
 
-    set({
-      selectedCompanyId: companyId,
-      allowedModules: newAllowed,
-      activeFilters: new Set([
-        ...effectiveKeys,
-        ...Object.keys(COMPLEXITY_TYPES),
-        ...Object.keys(ARCHETYPES),
-        ...Object.keys(TOPOLOGY_TYPES),
-      ]),
-    });
+      setNodePositions: (positions) =>
+        set((state) => ({
+          nodePositions: { ...state.nodePositions, ...positions },
+        })),
 
-    if (cy && !cy.destroyed()) {
-      cy.batch(() => {
-        cy.elements().style("display", "none");
-        effectiveKeys.forEach((key) => {
-          cy.elements(`[module = "${key}"]`).style("display", "element");
+      toggleTheme: () => {
+        set((s) => {
+          const newMode = !s.isDarkMode;
+          if (newMode) document.documentElement.classList.add("dark");
+          else document.documentElement.classList.remove("dark");
+          return { isDarkMode: newMode };
         });
-        cy.edges().style("display", "element");
-      });
-    }
-  },
-}));
+      },
+
+      toggleFilterPanel: () =>
+        set((s) => ({ isFilterPanelOpen: !s.isFilterPanelOpen })),
+
+      toggleFilter: (key) =>
+        set((s) => {
+          const newSet = new Set(s.activeFilters);
+          if (newSet.has(key)) newSet.delete(key);
+          else newSet.add(key);
+          return { activeFilters: newSet };
+        }),
+
+      resetFilters: () =>
+        set((s) => ({
+          activeFilters: new Set([
+            ...Array.from(s.allowedModules),
+            ...Object.keys(COMPLEXITY_TYPES),
+            ...Object.keys(ARCHETYPES),
+            ...Object.keys(TOPOLOGY_TYPES),
+          ]),
+        })),
+
+      openPopup: (data) => set({ popup: { isOpen: true, data } }),
+
+      closePopup: () => {
+        const { cy } = get();
+        if (cy) {
+          cy.elements().removeClass("highlight dimmed");
+          cy.$(":selected").unselect();
+        }
+        set({ popup: { isOpen: false, data: null } });
+      },
+
+      setCompanyContext: (companyId, allowedKeys) => {
+        const { cy } = get();
+        const effectiveKeys = companyId ? allowedKeys : Object.keys(COLORS);
+        const newAllowed = new Set(effectiveKeys);
+
+        set({
+          selectedCompanyId: companyId,
+          allowedModules: newAllowed,
+          activeFilters: new Set([
+            ...effectiveKeys,
+            ...Object.keys(COMPLEXITY_TYPES),
+            ...Object.keys(ARCHETYPES),
+            ...Object.keys(TOPOLOGY_TYPES),
+          ]),
+        });
+
+        if (cy && !cy.destroyed()) {
+          cy.batch(() => {
+            cy.elements().style("display", "none");
+            effectiveKeys.forEach((key) => {
+              cy.elements(`[module = "${key}"]`).style("display", "element");
+            });
+            cy.edges().style("display", "element");
+          });
+        }
+      },
+    }),
+    {
+      name: "graph-storage",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        isDarkMode: state.isDarkMode,
+        nodePositions: state.nodePositions,
+        selectedCompanyId: state.selectedCompanyId,
+      }),
+    },
+  ),
+);

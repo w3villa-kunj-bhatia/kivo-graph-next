@@ -15,8 +15,18 @@ if (typeof cytoscape("core", "expandCollapse") === "undefined") {
 
 export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { setCy, isDarkMode, openPopup, closePopup, popup, graphData } =
-    useGraphStore();
+
+  const {
+    setCy,
+    isDarkMode,
+    openPopup,
+    closePopup,
+    popup,
+    graphData,
+    nodePositions,
+    setNodePositions,
+  } = useGraphStore();
+
   const cyRef = useRef<cytoscape.Core | null>(null);
 
   useEffect(() => {
@@ -38,21 +48,41 @@ export default function GraphCanvas() {
     });
 
     if (graphData) {
-      cyRef.current.add(graphData.nodes);
+      const nodesWithPositions = graphData.nodes.map((node) => {
+        const savedPos = nodePositions[node.data.id];
+        if (savedPos) {
+          return { ...node, position: savedPos };
+        }
+        return node;
+      });
+
+      cyRef.current.add(nodesWithPositions);
       cyRef.current.add(graphData.edges);
+
+      const hasSavedPositions = Object.keys(nodePositions).length > 0;
 
       cyRef.current
         .layout({
-          name: "fcose",
+          name: hasSavedPositions ? "preset" : "fcose",
           animate: false,
           randomize: false,
           nodeRepulsion: 4500,
           idealEdgeLength: 100,
+          fit: !hasSavedPositions, 
         } as any)
         .run();
     }
 
     setCy(cyRef.current);
+
+    cyRef.current.on("dragfree", "node", (e) => {
+      const node = e.target;
+      const pos = node.position();
+
+      setNodePositions({
+        [node.id()]: { x: pos.x, y: pos.y },
+      });
+    });
 
     cyRef.current.on("tap", (e) => {
       if (e.target === cyRef.current) {
@@ -89,7 +119,6 @@ export default function GraphCanvas() {
       }
     };
   }, [setCy]);
-
   useEffect(() => {
     if (cyRef.current) {
       cyRef.current.json({ style: getGraphStyles(isDarkMode) } as any);
