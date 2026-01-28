@@ -12,6 +12,7 @@ import {
   toggleUserRole,
   deleteUser,
 } from "@/app/actions/userActions";
+import { uploadGraph, getGraphLogs } from "@/app/actions/graphActions";
 import { COLORS } from "@/utils/constants";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -35,32 +36,38 @@ import {
   Search,
   Sun,
   Moon,
+  History,
+  FileJson,
+  UploadCloud,
+  CheckCircle,
 } from "lucide-react";
 
 const AVAILABLE_MODULES = Object.keys(COLORS);
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
-type Tab = "companies" | "users";
+type Tab = "companies" | "users" | "logs";
 
 export default function AdminPage() {
   const { isDarkMode, toggleTheme } = useGraphStore();
   const [activeTab, setActiveTab] = useState<Tab>("companies");
+
   const [companies, setCompanies] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [stats, setStats] = useState({
     companyCount: 0,
     userCount: 0,
     moduleCount: 0,
   });
+
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [userSearch, setUserSearch] = useState("");
-
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formModules, setFormModules] = useState<Set<string>>(new Set());
-
-  const { data: session } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
   const profileRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
 
   const [toast, setToast] = useState<{
     message: string;
@@ -84,10 +91,18 @@ export default function AdminPage() {
     onConfirm: () => {},
   });
 
-  const [state, formAction, isPending] = useActionState(saveCompany, {
+  const [companyState, companyAction, isCompanyPending] = useActionState(
+    saveCompany,
+    {
+      success: false,
+      message: "",
+      timestamp: 0,
+    },
+  );
+
+  const [uploadState, uploadAction, isUploading] = useActionState(uploadGraph, {
     success: false,
     message: "",
-    timestamp: 0,
   });
 
   useEffect(() => {
@@ -100,13 +115,29 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchData();
-    if (state?.success) {
-      setToast({ message: state.message, type: "success" });
+  }, []);
+
+  useEffect(() => {
+    if (companyState?.success) {
+      setToast({ message: companyState.message, type: "success" });
       resetForm();
-    } else if (state?.message) {
-      setToast({ message: state.message, type: "error" });
+      fetchData();
+    } else if (companyState?.message) {
+      setToast({ message: companyState.message, type: "error" });
     }
-  }, [state]);
+  }, [companyState]);
+
+  useEffect(() => {
+    if (uploadState?.success) {
+      setToast({
+        message: uploadState.message || "Graph updated successfully",
+        type: "success",
+      });
+      fetchData();
+    } else if (uploadState?.message) {
+      setToast({ message: uploadState.message, type: "error" });
+    }
+  }, [uploadState]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -122,14 +153,20 @@ export default function AdminPage() {
   }, []);
 
   async function fetchData() {
-    const [companyData, userData, statsData] = await Promise.all([
-      getCompanies(),
-      getUsers(),
-      getStatistics(),
-    ]);
-    setCompanies(companyData);
-    setUsers(userData);
-    setStats(statsData);
+    try {
+      const [companyData, userData, statsData, logsData] = await Promise.all([
+        getCompanies(),
+        getUsers(),
+        getStatistics(),
+        getGraphLogs(),
+      ]);
+      setCompanies(companyData);
+      setUsers(userData);
+      setStats(statsData);
+      setLogs(logsData);
+    } catch (error) {
+      console.error("Failed to fetch admin data", error);
+    }
   }
 
   const showToast = (message: string, type: "success" | "error") => {
@@ -389,6 +426,12 @@ export default function AdminPage() {
         >
           Manage Users
         </button>
+        <button
+          onClick={() => setActiveTab("logs")}
+          className={`pb-2 px-4 text-sm font-bold transition-all ${activeTab === "logs" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
+        >
+          Graph Activity
+        </button>
       </div>
 
       {activeTab === "companies" && (
@@ -413,7 +456,7 @@ export default function AdminPage() {
               )}
             </div>
             <form
-              action={formAction}
+              action={companyAction}
               className="space-y-4 flex-1 flex flex-col"
             >
               {editingId && <input type="hidden" name="id" value={editingId} />}
@@ -459,10 +502,10 @@ export default function AdminPage() {
                 </div>
               </div>
               <button
-                disabled={isPending}
+                disabled={isCompanyPending}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
               >
-                {isPending
+                {isCompanyPending
                   ? editingId
                     ? "Updating..."
                     : "Creating..."
@@ -472,6 +515,7 @@ export default function AdminPage() {
               </button>
             </form>
           </div>
+
           <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-150">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-(--text-main)">
@@ -626,6 +670,121 @@ export default function AdminPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "logs" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
+          <div className="md:col-span-1 bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg h-fit">
+            <div className="flex items-center gap-2 mb-4">
+              <UploadCloud className="w-5 h-5 text-orange-500" />
+              <h2 className="text-xl font-semibold text-(--text-main)">
+                Update Graph
+              </h2>
+            </div>
+            <p className="text-sm text-(--text-sub) mb-6">
+              Upload a new JSON file to update the graph for all users. The
+              latest upload automatically becomes the active graph.
+            </p>
+
+            <form action={uploadAction} className="space-y-4">
+              <input
+                type="hidden"
+                name="uploaderEmail"
+                value={session?.user?.email || ""}
+              />
+
+              <div className="border-2 border-dashed border-(--border) rounded-lg p-8 flex flex-col items-center justify-center text-center hover:border-orange-500/50 transition bg-(--bg)/50 relative group">
+                <FileJson className="w-8 h-8 text-(--text-sub) mb-2 group-hover:text-orange-500 transition-colors" />
+                <label className="cursor-pointer inset-0 absolute w-full h-full flex items-center justify-center">
+                  <input
+                    type="file"
+                    name="file"
+                    accept=".json"
+                    required
+                    className="opacity-0 w-full h-full cursor-pointer"
+                  />
+                </label>
+                <span className="text-orange-500 font-bold hover:underline pointer-events-none">
+                  Click to browse
+                </span>
+                <p className="text-xs text-(--text-sub) mt-1 pointer-events-none">
+                  JSON files only
+                </p>
+              </div>
+
+              <button
+                disabled={isUploading}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20"
+              >
+                {isUploading
+                  ? "Uploading & Processing..."
+                  : "Upload & Activate"}
+              </button>
+            </form>
+          </div>
+
+          <div className="md:col-span-2 bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
+            <div className="flex items-center gap-2 mb-6">
+              <History className="w-5 h-5 text-(--text-main)" />
+              <h2 className="text-xl font-semibold text-(--text-main)">
+                Version History
+              </h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
+                    <th className="py-3 px-4">File Name</th>
+                    <th className="py-3 px-4">Uploaded By</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {logs.map((log, index) => (
+                    <tr
+                      key={log._id}
+                      className="border-b border-(--border) hover:bg-(--bg) transition-colors"
+                    >
+                      <td className="py-3 px-4 font-medium text-(--text-main) flex items-center gap-2">
+                        <FileJson className="w-4 h-4 text-(--text-sub)" />
+                        {log.fileName}
+                      </td>
+                      <td className="py-3 px-4 text-(--text-sub)">
+                        {log.uploaderEmail}
+                      </td>
+                      <td className="py-3 px-4 text-(--text-sub)">
+                        {new Date(log.uploadedAt).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {index === 0 ? (
+                          <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold border border-green-500/20">
+                            <CheckCircle className="w-3 h-3" /> Active
+                          </span>
+                        ) : (
+                          <span className="text-xs text-(--text-sub) italic">
+                            Archived
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {logs.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="text-center py-10 text-(--text-sub) italic"
+                      >
+                        No history found. Upload a graph to get started.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

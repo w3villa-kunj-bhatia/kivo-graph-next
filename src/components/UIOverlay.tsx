@@ -3,7 +3,6 @@
 import { useGraphStore } from "@/store/useGraphStore";
 import {
   Search,
-  Upload,
   Sun,
   Moon,
   Filter,
@@ -23,6 +22,7 @@ import { getGraphStyles } from "@/utils/graphStyles";
 import CompanySelector from "./CompanySelector";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
+import { getActiveGraph } from "@/app/actions/graphActions"; 
 
 export default function Navbar() {
   const {
@@ -83,6 +83,40 @@ export default function Navbar() {
     setNodeList(nodes);
   }, [nodesCount, cy]);
 
+  useEffect(() => {
+    async function initGraph() {
+      try {
+        const data = await getActiveGraph();
+        if (data && cy) {
+          const elements = processGraphData(data);
+
+          setGraphData(elements);
+
+          cy.elements().remove();
+          cy.add(elements.nodes);
+          cy.add(elements.edges);
+
+          const layoutConfig: any = {
+            name: "fcose",
+            animate: true,
+            randomize: true,
+            animationDuration: 1000,
+            nodeRepulsion: 4500,
+            idealEdgeLength: 100,
+          };
+          cy.layout(layoutConfig).run();
+          setStats(elements.nodes.length, elements.edges.length);
+        }
+      } catch (err) {
+        console.error("Failed to load active graph:", err);
+      }
+    }
+
+    if (cy) {
+      initGraph();
+    }
+  }, [cy, setGraphData, setStats]);
+
   const groupedNodes = useMemo(() => {
     const groups: Record<string, any[]> = {};
     nodeList.forEach((node) => {
@@ -91,38 +125,6 @@ export default function Navbar() {
     });
     return groups;
   }, [nodeList]);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !cy) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const json = JSON.parse(ev.target?.result as string);
-        const elements = processGraphData(json);
-
-        setGraphData(elements);
-
-        cy.elements().remove();
-        cy.add(elements.nodes);
-        cy.add(elements.edges);
-
-        const layoutConfig: any = {
-          name: "fcose",
-          animate: true,
-          randomize: true,
-          animationDuration: 1000,
-          nodeRepulsion: 4500,
-          idealEdgeLength: 100,
-        };
-        cy.layout(layoutConfig).run();
-        setStats(elements.nodes.length, elements.edges.length);
-      } catch (err) {
-        alert("Error parsing JSON: " + err);
-      }
-    };
-    reader.readAsText(file);
-  };
 
   const handleExport = () => {
     if (!cy) return;
@@ -305,17 +307,6 @@ export default function Navbar() {
             </div>
 
             <div className="hidden sm:block w-px h-6 bg-(--border) mx-1"></div>
-
-            <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-3 lg:px-4 rounded-lg transition text-xs font-bold shadow-sm shrink-0">
-              <Upload className="w-4 h-4" />{" "}
-              <span className="hidden xl:inline">Upload</span>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
 
             <button
               onClick={toggleTheme}
