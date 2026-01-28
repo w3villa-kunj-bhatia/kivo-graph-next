@@ -92,21 +92,42 @@ export default function Navbar() {
         if (data && cy) {
           const elements = processGraphData(data);
 
+          const { nodePositions } = useGraphStore.getState();
+          const hasSavedPositions = Object.keys(nodePositions).length > 0;
+
+          const nodesWithPositions = elements.nodes.map((node) => {
+            const savedPos = nodePositions[node.data.id];
+            if (savedPos) {
+              return { ...node, position: savedPos };
+            }
+            return node;
+          });
+          elements.nodes = nodesWithPositions;
+
           setGraphData(elements);
 
           cy.elements().remove();
           cy.add(elements.nodes);
           cy.add(elements.edges);
 
-          const layoutConfig: any = {
-            name: "fcose",
-            animate: true,
-            randomize: true,
-            animationDuration: 1000,
-            nodeRepulsion: 4500,
-            idealEdgeLength: 100,
-          };
+          const layoutConfig: any = hasSavedPositions
+            ? {
+                name: "preset",
+                animate: true,
+                fit: true,
+                padding: 50,
+              }
+            : {
+                name: "fcose",
+                animate: true,
+                randomize: true,
+                animationDuration: 1000,
+                nodeRepulsion: 4500,
+                idealEdgeLength: 100,
+              };
+
           cy.layout(layoutConfig).run();
+
           setStats(elements.nodes.length, elements.edges.length);
         }
       } catch (err) {
