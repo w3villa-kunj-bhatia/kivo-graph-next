@@ -15,7 +15,6 @@ export const authConfig = {
       const isAdminPage = nextUrl.pathname.startsWith("/admin");
       const isHomePage = nextUrl.pathname === "/";
 
-      // 1. Handle Auth Pages (Login/Signup)
       if (isAuthPage) {
         if (isLoggedIn) {
           return Response.redirect(new URL("/", nextUrl));
@@ -23,7 +22,6 @@ export const authConfig = {
         return true;
       }
 
-      // 2. Protect Admin Routes
       if (isAdminPage) {
         if (!isLoggedIn) return false;
         if (role !== "admin") {
@@ -32,12 +30,10 @@ export const authConfig = {
         return true;
       }
 
-      // 3. Allow Public Access to Landing Page
       if (isHomePage) {
         return true;
       }
 
-      // 4. Protect all other routes (dashboard subpages, etc.)
       return isLoggedIn;
     },
     jwt({ token, user }) {
