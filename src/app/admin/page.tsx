@@ -432,14 +432,14 @@ export default function AdminPage() {
                 />
               </div>
               <div className="flex-1 flex flex-col min-h-0">
-                <label className="block text-sm mb-2 text-(--text-sub)">
+                <label className="block text-md mb-2 text-(--text-sub)">
                   Allowed Modules
                 </label>
                 <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 custom-scrollbar flex-1 border border-(--border) rounded-lg p-2 bg-(--bg)/50">
                   {AVAILABLE_MODULES.map((mod) => (
                     <label
                       key={mod}
-                      className={`flex items-center space-x-2 p-2 rounded-lg cursor-pointer border transition-all h-fit ${formModules.has(mod) ? "bg-orange-500/10 border-orange-500/30" : "bg-(--card-bg) border-transparent hover:border-(--border)"}`}
+                      className={`flex items-center space-x-2 p-3 rounded-lg cursor-pointer border transition-all h-fit ${formModules.has(mod) ? "bg-orange-500/10 border-orange-500/30" : "bg-(--card-bg) border-transparent hover:border-(--border)"}`}
                     >
                       <input
                         type="checkbox"
@@ -450,7 +450,7 @@ export default function AdminPage() {
                         className="accent-orange-500 w-4 h-4"
                       />
                       <span
-                        className={`text-sm ${formModules.has(mod) ? "text-orange-500 font-medium" : "text-(--text-sub)"}`}
+                        className={`text-md ${formModules.has(mod) ? "text-orange-500 font-medium" : "text-(--text-sub)"}`}
                       >
                         {mod}
                       </span>
