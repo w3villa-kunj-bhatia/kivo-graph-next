@@ -22,7 +22,7 @@ import { getGraphStyles } from "@/utils/graphStyles";
 import CompanySelector from "./CompanySelector";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
-import { getActiveGraph } from "@/app/actions/graphActions"; 
+import { getActiveGraph } from "@/app/actions/graphActions";
 
 export default function Navbar() {
   const {
@@ -33,6 +33,7 @@ export default function Navbar() {
     toggleTheme,
     toggleFilterPanel,
     setGraphData,
+    setIsLoading,
   } = useGraphStore();
 
   const { data: session, status } = useSession();
@@ -85,6 +86,7 @@ export default function Navbar() {
 
   useEffect(() => {
     async function initGraph() {
+      setIsLoading(true);
       try {
         const data = await getActiveGraph();
         if (data && cy) {
@@ -109,13 +111,15 @@ export default function Navbar() {
         }
       } catch (err) {
         console.error("Failed to load active graph:", err);
+      } finally {
+        setIsLoading(false);
       }
     }
 
     if (cy) {
       initGraph();
     }
-  }, [cy, setGraphData, setStats]);
+  }, [cy, setGraphData, setStats, setIsLoading]);
 
   const groupedNodes = useMemo(() => {
     const groups: Record<string, any[]> = {};

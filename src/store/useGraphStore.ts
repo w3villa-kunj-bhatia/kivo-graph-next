@@ -22,6 +22,7 @@ interface GraphState {
   nodesCount: number;
   edgesCount: number;
   isDarkMode: boolean;
+  isLoading: boolean;
 
   graphData: { nodes: any[]; edges: any[] } | null;
 
@@ -40,6 +41,7 @@ interface GraphState {
 
   setCy: (cy: cytoscape.Core | null) => void;
   setGraphData: (data: { nodes: any[]; edges: any[] } | null) => void;
+  setIsLoading: (loading: boolean) => void;
 
   setNodePositions: (
     positions: Record<string, { x: number; y: number }>,
@@ -62,6 +64,7 @@ export const useGraphStore = create<GraphState>()(
       nodesCount: 0,
       edgesCount: 0,
       isDarkMode: true,
+      isLoading: true,
       graphData: null,
 
       nodePositions: {},
@@ -82,6 +85,7 @@ export const useGraphStore = create<GraphState>()(
 
       setCy: (cy) => set({ cy }),
       setGraphData: (data) => set({ graphData: data }),
+      setIsLoading: (loading) => set({ isLoading: loading }),
       setStats: (n, e) => set({ nodesCount: n, edgesCount: e }),
 
       setNodePositions: (positions) =>

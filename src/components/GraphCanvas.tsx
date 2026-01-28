@@ -25,6 +25,7 @@ export default function GraphCanvas() {
     graphData,
     nodePositions,
     setNodePositions,
+    isLoading,
   } = useGraphStore();
 
   const cyRef = useRef<cytoscape.Core | null>(null);
@@ -68,7 +69,7 @@ export default function GraphCanvas() {
           randomize: false,
           nodeRepulsion: 4500,
           idealEdgeLength: 100,
-          fit: !hasSavedPositions, 
+          fit: !hasSavedPositions,
         } as any)
         .run();
     }
@@ -133,9 +134,24 @@ export default function GraphCanvas() {
   }, [popup.isOpen]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-screen h-screen absolute top-0 left-0 z-0 bg-(--bg) transition-colors duration-300"
-    />
+    <>
+      {isLoading && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm transition-all duration-300">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-blue-200 dark:border-blue-900 animate-spin border-t-blue-600 dark:border-t-blue-500"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-2 h-2 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+            </div>
+          </div>
+          <p className="mt-4 text-sm font-semibold text-gray-600 dark:text-gray-300 animate-pulse">
+            Loading Graph...
+          </p>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="w-screen h-screen absolute top-0 left-0 z-0 bg-(--bg) transition-colors duration-300"
+      />
+    </>
   );
 }
