@@ -1,6 +1,6 @@
-# Kivo Graph Next
+# Kivo Dependency Graph Project 
 
-**Kivo Graph Next** is a robust, interactive software architecture visualization tool built with **Next.js 16**. It is designed to ingest raw dependency data (nodes and edges), automatically classify components into functional modules (like HRMS, CRM, ATS), and render them in a force-directed graph using **Cytoscape.js**.
+**Kivo Dependency Graph Project** is a robust, interactive software architecture visualization tool built with **Next.js 16**. It is designed to ingest raw dependency data (nodes and edges), automatically classify components into functional modules (like HRMS, CRM, ATS), and render them in a force-directed graph using **Cytoscape.js**.
 
 It features user authentication, persistent graph state management, and a high-performance rendering engine capable of handling complex dependency networks.
 
@@ -39,7 +39,7 @@ It features user authentication, persistent graph state management, and a high-p
 1. **Clone the repository:**
 
 ```bash
-git clone https://github.com/your-username/kivo-graph-next.git
+git clone https://github.com/w3villa-kunj-bhatia/kivo-graph-next.git
 cd kivo-graph-next
 
 ```
