@@ -10,7 +10,6 @@ interface ToastProps {
 }
 
 export default function Toast({ message, type, onClose }: ToastProps) {
-  // Auto-hide after 3 seconds
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
@@ -26,20 +25,20 @@ export default function Toast({ message, type, onClose }: ToastProps) {
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-top-2 duration-300 ${
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-top-2 duration-300 ${
         isSuccess
           ? "bg-green-500/10 border-green-500/50 text-green-400"
           : "bg-red-500/10 border-red-500/50 text-red-400"
       }`}
     >
       {isSuccess ? (
-        <CheckCircle className="w-5 h-5" />
+        <CheckCircle className="w-8 h-8" />
       ) : (
-        <XCircle className="w-5 h-5" />
+        <XCircle className="w-8 h-8" />
       )}
-      <p className="text-sm font-medium">{message}</p>
+      <p className="text-sm font-medium whitespace-nowrap">{message}</p>
       <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100">
-        <X className="w-4 h-4" />
+        <X className="w-5 h-5" />
       </button>
     </div>
   );
