@@ -30,9 +30,10 @@ export default function Navbar() {
     isDarkMode,
     toggleTheme,
     toggleFilterPanel,
+    setGraphData, 
   } = useGraphStore();
 
-  const { data: session, status } = useSession(); 
+  const { data: session, status } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +97,9 @@ export default function Navbar() {
       try {
         const json = JSON.parse(ev.target?.result as string);
         const elements = processGraphData(json);
+
+        setGraphData(elements);
+
         cy.elements().remove();
         cy.add(elements.nodes);
         cy.add(elements.edges);

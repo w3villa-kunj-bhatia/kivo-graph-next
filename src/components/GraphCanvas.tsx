@@ -15,7 +15,8 @@ if (typeof cytoscape("core", "expandCollapse") === "undefined") {
 
 export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { setCy, isDarkMode, openPopup, closePopup, popup } = useGraphStore();
+  const { setCy, isDarkMode, openPopup, closePopup, popup, graphData } =
+    useGraphStore();
   const cyRef = useRef<cytoscape.Core | null>(null);
 
   useEffect(() => {
@@ -35,6 +36,21 @@ export default function GraphCanvas() {
       animate: true,
       undoable: false,
     });
+
+    if (graphData) {
+      cyRef.current.add(graphData.nodes);
+      cyRef.current.add(graphData.edges);
+
+      cyRef.current
+        .layout({
+          name: "fcose",
+          animate: false,
+          randomize: false,
+          nodeRepulsion: 4500,
+          idealEdgeLength: 100,
+        } as any)
+        .run();
+    }
 
     setCy(cyRef.current);
 
@@ -69,7 +85,7 @@ export default function GraphCanvas() {
     return () => {
       if (cyRef.current) {
         cyRef.current.destroy();
-        setCy(null); 
+        setCy(null);
       }
     };
   }, [setCy]);

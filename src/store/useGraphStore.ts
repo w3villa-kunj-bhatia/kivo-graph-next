@@ -22,6 +22,8 @@ interface GraphState {
   edgesCount: number;
   isDarkMode: boolean;
 
+  graphData: { nodes: any[]; edges: any[] } | null;
+
   isFilterPanelOpen: boolean;
   activeFilters: Set<string>;
 
@@ -34,6 +36,7 @@ interface GraphState {
   };
 
   setCy: (cy: cytoscape.Core | null) => void;
+  setGraphData: (data: { nodes: any[]; edges: any[] } | null) => void;
 
   setStats: (n: number, e: number) => void;
   toggleTheme: () => void;
@@ -50,6 +53,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   nodesCount: 0,
   edgesCount: 0,
   isDarkMode: true,
+  graphData: null,
   isFilterPanelOpen: false,
 
   activeFilters: new Set([
@@ -65,6 +69,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   popup: { isOpen: false, data: null },
 
   setCy: (cy) => set({ cy }),
+  setGraphData: (data) => set({ graphData: data }),
   setStats: (n, e) => set({ nodesCount: n, edgesCount: e }),
 
   toggleTheme: () => {
