@@ -78,16 +78,16 @@ export default function FilterPanel() {
       )}
     >
       <div className="p-4 sticky top-0 bg-inherit z-10 flex justify-between items-center border-b border-(--border)">
-        <span className="text-xs font-bold text-(--text-sub)">FILTERS</span>
+        <span className="text-md font-bold text-(--text-sub)">FILTERS</span>
         <button
           onClick={resetFilters}
-          className="text-xs text-blue-500 font-semibold hover:text-blue-600"
+          className="text-sm text-blue-500 font-semibold hover:text-blue-600"
         >
           Reset
         </button>
       </div>
 
-      <div className="p-4 pt-2">
+      <div className="p-4 pt-4">
         {renderSection("Risk Levels", COMPLEXITY_TYPES)}
         {renderSection("Topology", TOPOLOGY_TYPES)}
         {renderSection("Layers", ARCHETYPES)}

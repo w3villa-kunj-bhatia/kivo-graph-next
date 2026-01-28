@@ -64,7 +64,7 @@ export default function PopupCard() {
             Connections ({data.connections})
           </div>
 
-          <ul className="max-h-150 overflow-y-auto pr-1 custom-scrollbar">
+          <ul className="max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
             {data.neighbors.map((n, i) => (
               <li
                 key={i}

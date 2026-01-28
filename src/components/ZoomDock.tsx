@@ -20,7 +20,7 @@ export default function ZoomDock() {
       const currentZoom = cy.zoom();
       const w = cy.width();
       const h = cy.height();
-      const pan = cy.pan(); 
+      const pan = cy.pan();
       const newZoom = currentZoom * factor;
 
       const newPan = {
@@ -33,7 +33,7 @@ export default function ZoomDock() {
   };
 
   return (
-    <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 bg-(--card-bg) backdrop-blur-md border border-(--border) p-1.5 rounded-lg shadow-xl z-40">
+    <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 bg-(--card-bg) backdrop-blur-md border border-(--border) p-1.5 rounded-lg shadow-xl z-100">
       <button
         onClick={() => handleZoom(1.4)}
         className="p-2 hover:bg-(--border) rounded text-(--text-main) transition"
