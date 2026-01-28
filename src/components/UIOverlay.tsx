@@ -13,6 +13,8 @@ import {
   LogOut,
   LayoutDashboard,
   LogIn,
+  Menu,
+  X,
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -30,11 +32,12 @@ export default function Navbar() {
     isDarkMode,
     toggleTheme,
     toggleFilterPanel,
-    setGraphData, 
+    setGraphData,
   } = useGraphStore();
 
   const { data: session, status } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -144,6 +147,7 @@ export default function Navbar() {
       node.emit("tap");
       setSuggestions([]);
       setSearchTerm("");
+      setIsMobileMenuOpen(false);
     }
   };
 
@@ -165,192 +169,217 @@ export default function Navbar() {
 
   return (
     <div className="absolute top-0 left-0 w-full z-50 pointer-events-auto">
-      <nav className="relative w-full bg-(--card-bg)/90 backdrop-blur-md border-b border-(--border) px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all">
-        <div className="flex items-center gap-6 z-10">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm">
-              <Projector className="w-5 h-5" />
+      <nav className="relative w-full bg-(--card-bg)/90 backdrop-blur-md border-b border-(--border) px-4 py-3 flex flex-col lg:flex-row items-center lg:justify-between shadow-sm transition-all gap-y-3 lg:gap-y-0">
+        <div className="flex items-center justify-between w-full lg:w-auto z-20 shrink-0">
+          <div className="flex items-center gap-4 xl:gap-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm shrink-0">
+                <Projector className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-bold text-(--text-main) text-sm leading-tight whitespace-nowrap">
+                  Kivo Graph
+                </h1>
+                <span className="text-[10px] font-semibold text-(--text-sub) bg-(--bg) border border-(--border) px-1.5 py-0.5 rounded inline-block">
+                  {nodesCount > 0 ? `${nodesCount} Nodes` : "No Data"}
+                </span>
+              </div>
             </div>
-            <div>
-              <h1 className="font-bold text-(--text-main) text-sm leading-tight">
-                Kivo Dependency Graph
-              </h1>
-              <span className="text-[10px] font-semibold text-(--text-sub) bg-(--bg) border border-(--border) px-1.5 py-0.5 rounded">
-                {nodesCount > 0 ? `${nodesCount} Nodes` : "No Data"}
-              </span>
+
+            <div className="hidden xl:block w-px h-8 bg-(--border)"></div>
+            <div className="hidden xl:flex gap-6 items-center">
+              <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub) whitespace-nowrap">
+                <div className="w-6 h-0 border-t-2 border-solid border-(--text-sub) opacity-60"></div>{" "}
+                Direct
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub) whitespace-nowrap">
+                <div className="w-6 h-0 border-t-2 border-dashed border-(--text-sub) opacity-60"></div>{" "}
+                Usage
+              </div>
             </div>
           </div>
 
-          <div className="hidden md:block w-px h-8 bg-(--border)"></div>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden p-2 text-(--text-main) hover:bg-(--border) rounded-lg transition"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
+        </div>
 
-          <div className="hidden md:flex gap-6 items-center">
-            <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub)">
-              <div className="w-6 h-0 border-t-2 border-solid border-(--text-sub) opacity-60"></div>{" "}
-              Direct
-            </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-(--text-sub)">
-              <div className="w-6 h-0 border-t-2 border-dashed border-(--text-sub) opacity-60"></div>{" "}
-              Usage
-            </div>
+        <div
+          className={`
+          w-full lg:w-auto lg:flex lg:items-center gap-3 xl:gap-4 transition-all duration-300 ease-in-out
+          ${isMobileMenuOpen ? "flex flex-col mt-2 opacity-100" : "hidden lg:flex lg:opacity-100"}
+        `}
+        >
+          <div className="z-10 w-full lg:w-auto flex justify-center shrink-0">
+            <CompanySelector />
           </div>
-        </div>
 
-        <div className="z-10 w-full md:w-auto flex justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2">
-          <CompanySelector />
-        </div>
+          <div className="flex flex-wrap items-center gap-2 z-10 justify-center lg:justify-end w-full lg:w-auto">
+            <button
+              onClick={handleExport}
+              className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border) shrink-0"
+              title="Export Image"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
 
-        <div className="flex flex-wrap items-center gap-2 z-10 justify-end w-full md:w-auto">
-          <button
-            onClick={handleExport}
-            className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border)"
-            title="Export Image"
-          >
-            <Camera className="w-4 h-4" />
-          </button>
+            <button
+              onClick={() => {
+                toggleFilterPanel();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-2 text-xs font-semibold px-2 py-2 lg:px-3 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border) shrink-0"
+              title="Filters"
+            >
+              <Filter className="w-4 h-4" />{" "}
+              <span className="lg:hidden xl:inline">Filters</span>
+            </button>
 
-          <button
-            onClick={toggleFilterPanel}
-            className="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border)"
-            title="Filters"
-          >
-            <Filter className="w-4 h-4" />{" "}
-            <span className="hidden sm:inline">Filters</span>
-          </button>
-
-          <select
-            className="h-9 rounded-lg border border-(--border) bg-(--bg) text-(--text-main) text-xs px-2 outline-none cursor-pointer w-32 md:w-40 focus:border-(--accent) focus:ring-1 focus:ring-(--accent)"
-            onChange={(e) => jumpToNode(e.target.value)}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Find Node...
-            </option>
-            {Object.keys(groupedNodes)
-              .sort()
-              .map((module) => (
-                <optgroup
-                  key={module}
-                  label={module}
-                  className="text-(--text-main) bg-(--bg)"
-                >
-                  {groupedNodes[module].map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.fullLabel}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-          </select>
-
-          <div className="relative group">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-(--text-sub)" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-3 py-2 text-sm bg-(--bg) text-(--text-main) border border-(--border) rounded-lg outline-none w-32 md:w-40 transition-all focus:w-40 md:focus:w-56 focus:border-(--accent) focus:ring-1 focus:ring-(--accent)"
-              />
-            </div>
-            {suggestions.length > 0 && (
-              <div className="absolute top-full left-0 w-full mt-2 bg-(--card-bg) border border-(--border) rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto z-20">
-                {suggestions.map((s) => (
-                  <div
-                    key={s.id}
-                    onClick={() => jumpToNode(s.id)}
-                    className="px-3 py-2 text-xs cursor-pointer hover:bg-(--border) flex justify-between items-center text-(--text-main)"
+            <select
+              className="h-9 rounded-lg border border-(--border) bg-(--bg) text-(--text-main) text-xs px-2 outline-none cursor-pointer w-full sm:w-32 lg:w-28 xl:w-40 focus:border-(--accent) focus:ring-1 focus:ring-(--accent)"
+              onChange={(e) => jumpToNode(e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Find Node...
+              </option>
+              {Object.keys(groupedNodes)
+                .sort()
+                .map((module) => (
+                  <optgroup
+                    key={module}
+                    label={module}
+                    className="text-(--text-main) bg-(--bg)"
                   >
-                    <span className="truncate max-w-[70%]">{s.fullLabel}</span>
-                    <span
-                      className="text-[10px] uppercase font-bold px-1.5 rounded border opacity-70 whitespace-nowrap"
-                      style={{
-                        color: COLORS[s.module],
-                        borderColor: COLORS[s.module],
-                      }}
+                    {groupedNodes[module].map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {node.fullLabel}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+            </select>
+
+            <div className="relative group w-full sm:w-auto">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-(--text-sub)" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-3 py-2 text-sm bg-(--bg) text-(--text-main) border border-(--border) rounded-lg outline-none w-full sm:w-32 lg:w-28 xl:w-40 transition-all focus:w-full sm:focus:w-40 lg:focus:w-40 xl:focus:w-56 focus:border-(--accent) focus:ring-1 focus:ring-(--accent)"
+                />
+              </div>
+              {suggestions.length > 0 && (
+                <div className="absolute top-full left-0 w-full mt-2 bg-(--card-bg) border border-(--border) rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto z-20">
+                  {suggestions.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => jumpToNode(s.id)}
+                      className="px-3 py-2 text-xs cursor-pointer hover:bg-(--border) flex justify-between items-center text-(--text-main)"
                     >
-                      {s.module}
+                      <span className="truncate max-w-[70%]">
+                        {s.fullLabel}
+                      </span>
+                      <span
+                        className="text-[10px] uppercase font-bold px-1.5 rounded border opacity-70 whitespace-nowrap"
+                        style={{
+                          color: COLORS[s.module],
+                          borderColor: COLORS[s.module],
+                        }}
+                      >
+                        {s.module}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="hidden sm:block w-px h-6 bg-(--border) mx-1"></div>
+
+            <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-3 lg:px-4 rounded-lg transition text-xs font-bold shadow-sm shrink-0">
+              <Upload className="w-4 h-4" />{" "}
+              <span className="hidden xl:inline">Upload</span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              onClick={toggleTheme}
+              className="w-9 h-9 flex items-center justify-center bg-(--bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main) shrink-0"
+            >
+              {isDarkMode ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </button>
+
+            <div className="relative shrink-0" ref={profileRef}>
+              {status === "loading" ? (
+                <div className="w-9 h-9 rounded-full bg-gray-500/20 animate-pulse"></div>
+              ) : session ? (
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="w-9 h-9 flex items-center justify-center bg-orange-600 text-white rounded-full hover:bg-orange-700 transition shadow-sm ring-2 ring-transparent focus:ring-orange-400"
+                >
+                  <User className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => signIn()}
+                  className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap"
+                >
+                  <LogIn className="w-4 h-4" />{" "}
+                  <span className="hidden xl:inline">Login</span>
+                </button>
+              )}
+
+              {isProfileOpen && session && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-(--card-bg) border border-(--border) rounded-xl shadow-2xl p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
+                  <div className="px-3 py-2 border-b border-(--border) mb-1">
+                    <p className="text-sm font-bold text-(--text-main) truncate">
+                      {session.user?.name}
+                    </p>
+                    <p className="text-xs text-(--text-sub) truncate">
+                      {session.user?.email}
+                    </p>
+                    <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded uppercase font-bold mt-1 inline-block">
+                      {session.user?.role}
                     </span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <div className="hidden sm:block w-px h-6 bg-(--border) mx-1"></div>
+                  {session.user?.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--border) rounded-lg transition"
+                    >
+                      <LayoutDashboard className="w-4 h-4" /> Admin Panel
+                    </Link>
+                  )}
 
-          <label className="cursor-pointer flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-white py-2 px-4 rounded-lg transition text-xs font-bold shadow-sm">
-            <Upload className="w-4 h-4" />{" "}
-            <span className="hidden sm:inline">Upload</span>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </label>
-
-          <button
-            onClick={toggleTheme}
-            className="w-9 h-9 flex items-center justify-center bg-(--bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main)"
-          >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </button>
-
-          <div className="relative" ref={profileRef}>
-            {status === "loading" ? (
-              <div className="w-9 h-9 rounded-full bg-gray-500/20 animate-pulse"></div>
-            ) : session ? (
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-9 h-9 flex items-center justify-center bg-orange-600 text-white rounded-full hover:bg-orange-700 transition shadow-sm ring-2 ring-transparent focus:ring-orange-400"
-              >
-                <User className="w-5 h-5" />
-              </button>
-            ) : (
-              <button
-                onClick={() => signIn()}
-                className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition"
-              >
-                <LogIn className="w-4 h-4" /> Login
-              </button>
-            )}
-
-            {isProfileOpen && session && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-(--card-bg) border border-(--border) rounded-xl shadow-2xl p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="px-3 py-2 border-b border-(--border) mb-1">
-                  <p className="text-sm font-bold text-(--text-main) truncate">
-                    {session.user?.name}
-                  </p>
-                  <p className="text-xs text-(--text-sub) truncate">
-                    {session.user?.email}
-                  </p>
-                  <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded uppercase font-bold mt-1 inline-block">
-                    {session.user?.role}
-                  </span>
-                </div>
-
-                {session.user?.role === "admin" && (
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--border) rounded-lg transition"
+                  <button
+                    onClick={() => signOut()}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition w-full text-left"
                   >
-                    <LayoutDashboard className="w-4 h-4" /> Admin Panel
-                  </Link>
-                )}
-
-                <button
-                  onClick={() => signOut()}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition w-full text-left"
-                >
-                  <LogOut className="w-4 h-4" /> Sign Out
-                </button>
-              </div>
-            )}
+                    <LogOut className="w-4 h-4" /> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
