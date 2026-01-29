@@ -14,6 +14,7 @@ import {
   LogIn,
   Menu,
   X,
+  Download, 
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -92,7 +93,6 @@ export default function UIOverlay() {
       try {
         const data = await getActiveGraph();
 
-        // FIX: Check if component is mounted and cy exists/is valid before proceeding
         if (!isMounted) return;
         if (!cy || cy.destroyed()) {
           setIsLoading(false);
@@ -116,7 +116,6 @@ export default function UIOverlay() {
 
           setGraphData(elements);
 
-          // Double check cy validity before manipulating it
           if (cy.destroyed()) return;
 
           cy.elements().remove();
@@ -139,7 +138,6 @@ export default function UIOverlay() {
                 idealEdgeLength: 100,
               };
 
-          // Final safety check before running layout
           if (!cy.destroyed()) {
             cy.layout(layoutConfig).run();
             setStats(elements.nodes.length, elements.edges.length);
@@ -170,7 +168,30 @@ export default function UIOverlay() {
     return groups;
   }, [nodeList]);
 
-  const handleExport = () => {
+  const handleDownloadJSON = () => {
+    if (!cy || cy.destroyed()) return;
+
+    const nodes = cy.nodes().map((n) => ({
+      data: n.data(),
+      position: n.position(), 
+    }));
+
+    const edges = cy.edges().map((e) => ({
+      data: e.data(),
+    }));
+
+    const exportData = { nodes, edges };
+
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const link = document.createElement("a");
+    link.href = dataStr;
+    link.download = `kivo-graph-${new Date().toISOString().split("T")[0]}.json`;
+    link.click();
+  };
+
+  const handleExportImage = () => {
     if (!cy || cy.destroyed()) return;
     const jpg = cy.jpg({
       full: true,
@@ -270,7 +291,15 @@ export default function UIOverlay() {
 
           <div className="flex flex-wrap items-center gap-2 z-10 justify-center lg:justify-end w-full lg:w-auto">
             <button
-              onClick={handleExport}
+              onClick={handleDownloadJSON}
+              className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border) shrink-0"
+              title="Download Current Graph (JSON)"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleExportImage}
               className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border) shrink-0"
               title="Export Image"
             >
