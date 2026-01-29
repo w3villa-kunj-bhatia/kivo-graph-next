@@ -40,6 +40,10 @@ import {
   FileJson,
   UploadCloud,
   CheckCircle,
+  PlusCircle,
+  Trash2,
+  Link as LinkIcon,
+  FileUp,
 } from "lucide-react";
 
 const AVAILABLE_MODULES = Object.keys(COLORS);
@@ -288,6 +292,43 @@ export default function AdminPage() {
       },
     });
   }
+
+  const getLogDisplayData = (fileName: string) => {
+    if (fileName.startsWith("Manual Add:")) {
+      return {
+        type: "Node Added",
+        details: fileName.replace("Manual Add: ", ""),
+        icon: PlusCircle,
+        style:
+          "text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400",
+      };
+    }
+    if (fileName.startsWith("Manual Delete:")) {
+      return {
+        type: "Deleted",
+        details: fileName.replace("Manual Delete: ", ""),
+        icon: Trash2,
+        style:
+          "text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400",
+      };
+    }
+    if (fileName.startsWith("Manual Connect:")) {
+      return {
+        type: "Connected",
+        details: fileName.replace("Manual Connect: ", ""),
+        icon: LinkIcon,
+        style:
+          "text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400",
+      };
+    }
+    return {
+      type: "File Upload",
+      details: fileName,
+      icon: FileUp,
+      style:
+        "text-orange-600 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400",
+    };
+  };
 
   const filteredUsers = users.filter(
     (u) =>
@@ -737,41 +778,58 @@ export default function AdminPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
-                    <th className="py-3 px-4">File Name</th>
-                    <th className="py-3 px-4">Uploaded By</th>
+                    <th className="py-3 px-4">Action / File</th>
+                    <th className="py-3 px-4">Performed By</th>
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
-                  {logs.map((log, index) => (
-                    <tr
-                      key={log._id}
-                      className="border-b border-(--border) hover:bg-(--bg) transition-colors"
-                    >
-                      <td className="py-3 px-4 font-medium text-(--text-main) flex items-center gap-2">
-                        <FileJson className="w-4 h-4 text-(--text-sub)" />
-                        {log.fileName}
-                      </td>
-                      <td className="py-3 px-4 text-(--text-sub)">
-                        {log.uploaderEmail}
-                      </td>
-                      <td className="py-3 px-4 text-(--text-sub)">
-                        {new Date(log.uploadedAt).toLocaleString()}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {index === 0 ? (
-                          <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold border border-green-500/20">
-                            <CheckCircle className="w-3 h-3" /> Active
-                          </span>
-                        ) : (
-                          <span className="text-xs text-(--text-sub) italic">
-                            Archived
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {logs.map((log, index) => {
+                    const display = getLogDisplayData(log.fileName);
+                    const LogIcon = display.icon;
+                    return (
+                      <tr
+                        key={log._id}
+                        className="border-b border-(--border) hover:bg-(--bg) transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
+                            >
+                              <LogIcon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-(--text-main) text-sm truncate">
+                                {display.details}
+                              </p>
+                              <span className="text-[10px] uppercase font-bold text-(--text-sub)">
+                                {display.type}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-(--text-sub)">
+                          {log.uploaderEmail}
+                        </td>
+                        <td className="py-3 px-4 text-(--text-sub)">
+                          {new Date(log.uploadedAt).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {index === 0 ? (
+                            <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold border border-green-500/20">
+                              <CheckCircle className="w-3 h-3" /> Active
+                            </span>
+                          ) : (
+                            <span className="text-xs text-(--text-sub) italic">
+                              Archived
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {logs.length === 0 && (
                     <tr>
                       <td
