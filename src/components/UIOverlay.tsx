@@ -14,7 +14,7 @@ import {
   LogIn,
   Menu,
   X,
-  Download, 
+  Download,
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -45,6 +45,8 @@ export default function UIOverlay() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [nodeList, setNodeList] = useState<any[]>([]);
+
+  const isAdmin = session?.user?.role === "admin";
 
   useEffect(() => {
     if (isDarkMode) {
@@ -173,7 +175,7 @@ export default function UIOverlay() {
 
     const nodes = cy.nodes().map((n) => ({
       data: n.data(),
-      position: n.position(), 
+      position: n.position(),
     }));
 
     const edges = cy.edges().map((e) => ({
@@ -290,13 +292,15 @@ export default function UIOverlay() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 z-10 justify-center lg:justify-end w-full lg:w-auto">
-            <button
-              onClick={handleDownloadJSON}
-              className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border) shrink-0"
-              title="Download Current Graph (JSON)"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={handleDownloadJSON}
+                className="p-2 rounded-lg transition hover:bg-(--border) text-(--text-main) border border-transparent hover:border-(--border) shrink-0"
+                title="Download Current Graph (JSON)"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            )}
 
             <button
               onClick={handleExportImage}
