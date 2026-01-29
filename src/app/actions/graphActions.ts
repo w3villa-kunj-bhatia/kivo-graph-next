@@ -74,3 +74,86 @@ export async function getActiveGraph() {
     edges: latest.content.edges,
   };
 }
+
+// --- NEW EDITOR ACTIONS ---
+
+export async function addNodeToGraph(nodeData: any) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Unauthorized" };
+
+  await dbConnect();
+  const latest = await GraphLog.findOne().sort({ uploadedAt: -1 });
+  if (!latest) return { error: "No active graph found to edit" };
+
+  try {
+    const newContent = { ...latest.content };
+    // Wrap data in format expected by schema if needed, usually just push the node object
+    newContent.nodes.push({ data: nodeData });
+
+    latest.content = newContent;
+    latest.markModified("content"); // Essential for Mixed types
+    await latest.save();
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to save node" };
+  }
+}
+
+export async function addEdgeToGraph(edgeData: any) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Unauthorized" };
+
+  await dbConnect();
+  const latest = await GraphLog.findOne().sort({ uploadedAt: -1 });
+  if (!latest) return { error: "No active graph found" };
+
+  try {
+    const newContent = { ...latest.content };
+    newContent.edges.push({ data: edgeData });
+
+    latest.content = newContent;
+    latest.markModified("content");
+    await latest.save();
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to save edge" };
+  }
+}
+
+export async function deleteGraphElement(id: string) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Unauthorized" };
+
+  await dbConnect();
+  const latest = await GraphLog.findOne().sort({ uploadedAt: -1 });
+  if (!latest) return { error: "No active graph found" };
+
+  try {
+    const newContent = { ...latest.content };
+
+    // Filter out the node
+    newContent.nodes = newContent.nodes.filter((n: any) => n.data.id !== id);
+
+    // Filter out edges connected to this ID or the edge itself
+    newContent.edges = newContent.edges.filter(
+      (e: any) =>
+        e.data.id !== id && e.data.source !== id && e.data.target !== id,
+    );
+
+    latest.content = newContent;
+    latest.markModified("content");
+    await latest.save();
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to delete element" };
+  }
+}

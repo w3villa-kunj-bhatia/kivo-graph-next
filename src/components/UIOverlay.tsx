@@ -24,7 +24,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { getActiveGraph } from "@/app/actions/graphActions";
 
-export default function Navbar() {
+export default function UIOverlay() {
   const {
     cy,
     nodesCount,
@@ -52,7 +52,7 @@ export default function Navbar() {
       document.documentElement.classList.remove("dark");
     }
 
-    if (cy) {
+    if (cy && !cy.destroyed()) {
       cy.style(getGraphStyles(isDarkMode));
     }
   }, [isDarkMode, cy]);
@@ -71,7 +71,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (!cy) return;
+    if (!cy || cy.destroyed()) return;
 
     const nodes = cy.nodes("[!isGroup]").map((n) => ({
       id: n.id(),
@@ -85,11 +85,21 @@ export default function Navbar() {
   }, [nodesCount, cy]);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function initGraph() {
       setIsLoading(true);
       try {
         const data = await getActiveGraph();
-        if (data && cy) {
+
+        // FIX: Check if component is mounted and cy exists/is valid before proceeding
+        if (!isMounted) return;
+        if (!cy || cy.destroyed()) {
+          setIsLoading(false);
+          return;
+        }
+
+        if (data) {
           const elements = processGraphData(data);
 
           const { nodePositions } = useGraphStore.getState();
@@ -105,6 +115,9 @@ export default function Navbar() {
           elements.nodes = nodesWithPositions;
 
           setGraphData(elements);
+
+          // Double check cy validity before manipulating it
+          if (cy.destroyed()) return;
 
           cy.elements().remove();
           cy.add(elements.nodes);
@@ -126,20 +139,26 @@ export default function Navbar() {
                 idealEdgeLength: 100,
               };
 
-          cy.layout(layoutConfig).run();
-
-          setStats(elements.nodes.length, elements.edges.length);
+          // Final safety check before running layout
+          if (!cy.destroyed()) {
+            cy.layout(layoutConfig).run();
+            setStats(elements.nodes.length, elements.edges.length);
+          }
         }
       } catch (err) {
         console.error("Failed to load active graph:", err);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
 
-    if (cy) {
+    if (cy && !cy.destroyed()) {
       initGraph();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [cy, setGraphData, setStats, setIsLoading]);
 
   const groupedNodes = useMemo(() => {
@@ -152,7 +171,7 @@ export default function Navbar() {
   }, [nodeList]);
 
   const handleExport = () => {
-    if (!cy) return;
+    if (!cy || cy.destroyed()) return;
     const jpg = cy.jpg({
       full: true,
       quality: 1,
@@ -166,7 +185,7 @@ export default function Navbar() {
   };
 
   const jumpToNode = (id: string) => {
-    if (!cy) return;
+    if (!cy || cy.destroyed()) return;
     const node = cy.getElementById(id);
     if (node.nonempty()) {
       cy.zoom({ level: 1.5, position: node.position() });
@@ -179,7 +198,7 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    if (!searchTerm || !cy) {
+    if (!searchTerm || !cy || cy.destroyed()) {
       setSuggestions([]);
       return;
     }

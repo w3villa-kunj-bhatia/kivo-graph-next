@@ -25,7 +25,6 @@ interface GraphState {
   isLoading: boolean;
 
   graphData: { nodes: any[]; edges: any[] } | null;
-
   nodePositions: Record<string, { x: number; y: number }>;
 
   isFilterPanelOpen: boolean;
@@ -37,6 +36,12 @@ interface GraphState {
   popup: {
     isOpen: boolean;
     data: PopupData | null;
+  };
+
+  // NEW: Connection Mode State
+  connectionMode: {
+    isActive: boolean;
+    sourceId: string | null;
   };
 
   setCy: (cy: cytoscape.Core | null) => void;
@@ -55,6 +60,12 @@ interface GraphState {
   openPopup: (data: PopupData) => void;
   closePopup: () => void;
   setCompanyContext: (companyId: string | null, allowedKeys: string[]) => void;
+
+  // NEW: Editor Actions
+  setConnectionMode: (isActive: boolean, sourceId?: string | null) => void;
+  addNode: (node: any) => void;
+  addEdge: (edge: any) => void;
+  removeElement: (id: string) => void;
 }
 
 export const useGraphStore = create<GraphState>()(
@@ -82,6 +93,9 @@ export const useGraphStore = create<GraphState>()(
       allowedModules: new Set(Object.keys(COLORS)),
 
       popup: { isOpen: false, data: null },
+
+      // NEW: Initial State
+      connectionMode: { isActive: false, sourceId: null },
 
       setCy: (cy) => set({ cy }),
       setGraphData: (data) => set({ graphData: data }),
@@ -158,6 +172,58 @@ export const useGraphStore = create<GraphState>()(
             });
             cy.edges().style("display", "element");
           });
+        }
+      },
+
+      // NEW: Editor Actions Implementation
+      setConnectionMode: (isActive, sourceId = null) =>
+        set({ connectionMode: { isActive, sourceId } }),
+
+      addNode: (node) => {
+        const { cy } = get();
+        if (cy) {
+          cy.add({
+            group: "nodes",
+            data: node,
+            position: { x: node.x || 0, y: node.y || 0 },
+          });
+          const currentNodes = get().graphData?.nodes || [];
+          set((state) => ({
+            nodesCount: state.nodesCount + 1,
+            graphData: {
+              ...state.graphData!,
+              nodes: [...currentNodes, { data: node }],
+            },
+          }));
+        }
+      },
+
+      addEdge: (edge) => {
+        const { cy } = get();
+        if (cy) {
+          cy.add({ group: "edges", data: edge });
+          const currentEdges = get().graphData?.edges || [];
+          set((state) => ({
+            edgesCount: state.edgesCount + 1,
+            graphData: {
+              ...state.graphData!,
+              edges: [...currentEdges, { data: edge }],
+            },
+          }));
+        }
+      },
+
+      removeElement: (id) => {
+        const { cy } = get();
+        if (cy) {
+          const el = cy.getElementById(id);
+          if (el.nonempty()) {
+            el.remove();
+            set((state) => ({
+              nodesCount: cy.nodes().length,
+              edgesCount: cy.edges().length,
+            }));
+          }
         }
       },
     }),
