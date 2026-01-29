@@ -25,12 +25,10 @@ export default function NodeModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Generate a simple ID
     const id =
       label.toLowerCase().replace(/[^a-z0-9]/g, "-") +
       "-" +
       Math.floor(Math.random() * 1000);
-
     onSubmit({
       id,
       label,
@@ -39,7 +37,6 @@ export default function NodeModal({
       complexity: "normal",
       archetype: "Service",
     });
-
     setLabel("");
     onClose();
   };

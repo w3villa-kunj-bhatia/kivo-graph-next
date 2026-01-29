@@ -7,7 +7,6 @@ import { auth } from "@/auth";
 
 export async function uploadGraph(prevState: any, formData: FormData) {
   await dbConnect();
-
   const session = await auth();
   if (session?.user?.role !== "admin") {
     return { success: false, message: "Unauthorized: Admin access required." };
@@ -16,19 +15,14 @@ export async function uploadGraph(prevState: any, formData: FormData) {
   const file = formData.get("file") as File;
   const uploaderEmail = session.user.email;
 
-  if (!file) {
-    return { success: false, message: "No file provided." };
-  }
+  if (!file) return { success: false, message: "No file provided." };
 
   try {
     const text = await file.text();
     const jsonContent = JSON.parse(text);
 
     if (!jsonContent.nodes || !jsonContent.edges) {
-      return {
-        success: false,
-        message: "Invalid JSON structure. Missing nodes/edges.",
-      };
+      return { success: false, message: "Invalid JSON. Missing nodes/edges." };
     }
 
     await GraphLog.create({
@@ -40,10 +34,7 @@ export async function uploadGraph(prevState: any, formData: FormData) {
 
     revalidatePath("/admin");
     revalidatePath("/");
-    return {
-      success: true,
-      message: "Graph uploaded and activated successfully!",
-    };
+    return { success: true, message: "Graph uploaded successfully!" };
   } catch (error) {
     console.error("Upload error:", error);
     return { success: false, message: "Failed to process file." };
@@ -66,16 +57,12 @@ export async function getGraphLogs() {
 export async function getActiveGraph() {
   await dbConnect();
   const latest = await GraphLog.findOne().sort({ uploadedAt: -1 }).lean();
-
   if (!latest) return null;
-
   return {
     nodes: latest.content.nodes,
     edges: latest.content.edges,
   };
 }
-
-// --- NEW EDITOR ACTIONS ---
 
 export async function addNodeToGraph(nodeData: any) {
   const session = await auth();
@@ -83,18 +70,26 @@ export async function addNodeToGraph(nodeData: any) {
 
   await dbConnect();
   const latest = await GraphLog.findOne().sort({ uploadedAt: -1 });
-  if (!latest) return { error: "No active graph found to edit" };
+
+  const currentContent = latest ? latest.content : { nodes: [], edges: [] };
+  const currentNodes = currentContent.nodes || [];
+  const currentEdges = currentContent.edges || [];
 
   try {
-    const newContent = { ...latest.content };
-    // Wrap data in format expected by schema if needed, usually just push the node object
-    newContent.nodes.push({ data: nodeData });
+    const newContent = {
+      nodes: [...currentNodes, { data: nodeData }],
+      edges: currentEdges,
+    };
 
-    latest.content = newContent;
-    latest.markModified("content"); // Essential for Mixed types
-    await latest.save();
+    await GraphLog.create({
+      uploaderEmail: session.user.email,
+      fileName: `Manual Add: ${nodeData.label}`,
+      content: newContent,
+      uploadedAt: new Date(),
+    });
 
     revalidatePath("/");
+    revalidatePath("/admin");
     return { success: true };
   } catch (error) {
     console.error(error);
@@ -108,17 +103,23 @@ export async function addEdgeToGraph(edgeData: any) {
 
   await dbConnect();
   const latest = await GraphLog.findOne().sort({ uploadedAt: -1 });
-  if (!latest) return { error: "No active graph found" };
+  const currentContent = latest ? latest.content : { nodes: [], edges: [] };
 
   try {
-    const newContent = { ...latest.content };
-    newContent.edges.push({ data: edgeData });
+    const newContent = {
+      nodes: currentContent.nodes,
+      edges: [...(currentContent.edges || []), { data: edgeData }],
+    };
 
-    latest.content = newContent;
-    latest.markModified("content");
-    await latest.save();
+    await GraphLog.create({
+      uploaderEmail: session.user.email,
+      fileName: `Manual Connect: ${edgeData.source} -> ${edgeData.target}`,
+      content: newContent,
+      uploadedAt: new Date(),
+    });
 
     revalidatePath("/");
+    revalidatePath("/admin");
     return { success: true };
   } catch (error) {
     console.error(error);
@@ -135,22 +136,30 @@ export async function deleteGraphElement(id: string) {
   if (!latest) return { error: "No active graph found" };
 
   try {
-    const newContent = { ...latest.content };
+    const oldNodes = latest.content.nodes || [];
+    const oldEdges = latest.content.edges || [];
 
-    // Filter out the node
-    newContent.nodes = newContent.nodes.filter((n: any) => n.data.id !== id);
+    const targetNode = oldNodes.find((n: any) => n.data.id === id);
+    const label = targetNode ? targetNode.data.label : id;
+    const isNode = !!targetNode;
 
-    // Filter out edges connected to this ID or the edge itself
-    newContent.edges = newContent.edges.filter(
+    const newNodes = oldNodes.filter((n: any) => n.data.id !== id);
+    const newEdges = oldEdges.filter(
       (e: any) =>
         e.data.id !== id && e.data.source !== id && e.data.target !== id,
     );
 
-    latest.content = newContent;
-    latest.markModified("content");
-    await latest.save();
+    const newContent = { nodes: newNodes, edges: newEdges };
+
+    await GraphLog.create({
+      uploaderEmail: session.user.email,
+      fileName: `Manual Delete: ${isNode ? "Node" : "Edge"} '${label}'`,
+      content: newContent,
+      uploadedAt: new Date(),
+    });
 
     revalidatePath("/");
+    revalidatePath("/admin");
     return { success: true };
   } catch (error) {
     console.error(error);

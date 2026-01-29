@@ -9,6 +9,7 @@ import { getGraphStyles } from "@/utils/graphStyles";
 import { highlightNode, clearHighlights } from "@/utils/graphInteraction";
 import { useSession } from "next-auth/react";
 import NodeModal from "./GraphEditor/NodeModal";
+import ConfirmationModal from "./ConfirmationModal"; // Imported ConfirmationModal
 import {
   addNodeToGraph,
   addEdgeToGraph,
@@ -54,6 +55,21 @@ export default function GraphCanvas() {
   } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [clickPos, setClickPos] = useState({ x: 0, y: 0 }); // Pos for new node
+
+  // --- CONFIRMATION STATE ---
+  const [confirmation, setConfirmation] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    isDangerous: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    isDangerous: false,
+    onConfirm: () => {},
+  });
 
   // --- INITIALIZATION ---
   useEffect(() => {
@@ -130,10 +146,9 @@ export default function GraphCanvas() {
 
     // 2. Left Click (Normal + Connection Logic)
     cyRef.current.on("tap", (e) => {
-      // Close context menu on any click
-      setContextMenu(null);
+      setContextMenu(null); // Close menu
 
-      // --- CONNECTION MODE LOGIC ---
+      // Connection Mode Logic
       if (
         useGraphStore.getState().connectionMode.isActive &&
         e.target.isNode()
@@ -143,18 +158,17 @@ export default function GraphCanvas() {
 
         if (sourceId && sourceId !== targetId) {
           handleCreateEdge(sourceId, targetId);
-          return; // Stop further processing (like popup)
+          return;
         }
       }
 
-      // --- NORMAL LOGIC ---
+      // Popup Logic
       if (e.target === cyRef.current) {
         closePopup();
       }
     });
 
     cyRef.current.on("tap", "node[!isGroup]", (e) => {
-      // If connecting, don't open popup
       if (useGraphStore.getState().connectionMode.isActive) return;
 
       const node = e.target;
@@ -184,7 +198,7 @@ export default function GraphCanvas() {
         setCy(null);
       }
     };
-  }, [setCy, isAdmin]); // Re-run if admin status changes (to bind/unbind editors)
+  }, [setCy, isAdmin]); // Re-run if admin status changes
 
   useEffect(() => {
     if (cyRef.current) {
@@ -201,35 +215,44 @@ export default function GraphCanvas() {
 
   // --- EDITOR HANDLERS ---
   const handleCreateNode = async (data: any) => {
-    // Merge the form data with the position where user clicked
     const newNode = { ...data, ...clickPos };
-    addNode(newNode); // Optimistic UI update
-    await addNodeToGraph(newNode); // DB Save
+    addNode(newNode); // Optimistic UI
+    await addNodeToGraph(newNode); // DB Save (Creates Log)
   };
 
   const handleCreateEdge = async (source: string, target: string) => {
     const edgeId = `e-${source}-${target}-${Date.now()}`;
     const newEdge = { id: edgeId, source, target };
-
-    addEdge(newEdge); // Optimistic UI
-    setConnectionMode(false, null); // Exit mode
-
-    await addEdgeToGraph(newEdge); // DB Save
+    addEdge(newEdge);
+    setConnectionMode(false, null);
+    await addEdgeToGraph(newEdge); // DB Save (Creates Log)
   };
 
-  const handleDelete = async () => {
-    if (contextMenu?.targetId) {
-      removeElement(contextMenu.targetId); // Optimistic UI
-      await deleteGraphElement(contextMenu.targetId); // DB Save
-      setContextMenu(null);
-    }
+  // --- DELETE WITH CONFIRMATION ---
+  const initiateDelete = () => {
+    if (!contextMenu?.targetId) return;
+    const id = contextMenu.targetId;
+    const type = contextMenu.type;
+
+    setContextMenu(null); // Close context menu
+
+    setConfirmation({
+      isOpen: true,
+      title: `Delete ${type === "node" ? "Node" : "Edge"}?`,
+      message: `Are you sure you want to delete this ${type}? This action will be logged.`,
+      isDangerous: true,
+      onConfirm: async () => {
+        removeElement(id); // Optimistic UI
+        await deleteGraphElement(id); // DB Save (Creates Log)
+      },
+    });
   };
 
   const startConnection = () => {
     if (contextMenu?.targetId) {
       setConnectionMode(true, contextMenu.targetId);
       setContextMenu(null);
-      closePopup(); // Close info popup if open
+      closePopup();
     }
   };
 
@@ -239,15 +262,22 @@ export default function GraphCanvas() {
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm transition-all duration-300">
           <div className="relative">
             <div className="w-16 h-16 rounded-full border-4 border-blue-200 dark:border-blue-900 animate-spin border-t-blue-600 dark:border-t-blue-500"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-2 h-2 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
-            </div>
           </div>
           <p className="mt-4 text-sm font-semibold text-gray-600 dark:text-gray-300 animate-pulse">
             Loading Graph...
           </p>
         </div>
       )}
+
+      {/* --- CONFIRMATION MODAL --- */}
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        onClose={() => setConfirmation({ ...confirmation, isOpen: false })}
+        onConfirm={confirmation.onConfirm}
+        title={confirmation.title}
+        message={confirmation.message}
+        isDangerous={confirmation.isDangerous}
+      />
 
       {/* --- CONNECTION MODE BANNER --- */}
       {connectionMode.isActive && (
@@ -293,7 +323,7 @@ export default function GraphCanvas() {
               </button>
               <div className="h-px bg-gray-100 dark:bg-slate-700 my-1" />
               <button
-                onClick={handleDelete}
+                onClick={initiateDelete} // Triggers confirmation
                 className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm"
               >
                 Delete Node
@@ -303,7 +333,7 @@ export default function GraphCanvas() {
 
           {contextMenu.type === "edge" && (
             <button
-              onClick={handleDelete}
+              onClick={initiateDelete} // Triggers confirmation
               className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm"
             >
               Delete Edge
@@ -312,7 +342,6 @@ export default function GraphCanvas() {
         </div>
       )}
 
-      {/* --- NODE MODAL --- */}
       <NodeModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
