@@ -191,7 +191,8 @@ export default function Navbar() {
           .includes(searchTerm.toLowerCase()),
       )
       .map((n) => n.data());
-    setSuggestions(matches.slice(0, 10));
+
+    setSuggestions(matches);
   }, [searchTerm, cy]);
 
   return (
