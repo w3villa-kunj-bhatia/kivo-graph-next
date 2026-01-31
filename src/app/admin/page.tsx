@@ -13,6 +13,12 @@ import {
   deleteUser,
 } from "@/app/actions/userActions";
 import { uploadGraph, getGraphLogs } from "@/app/actions/graphActions";
+import {
+  createModule,
+  deleteModule,
+  getModules,
+} from "@/app/actions/moduleActions";
+
 import { COLORS } from "@/utils/constants";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -44,11 +50,11 @@ import {
   Trash2,
   Link as LinkIcon,
   FileUp,
+  Palette,
 } from "lucide-react";
 
-const AVAILABLE_MODULES = Object.keys(COLORS);
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
-type Tab = "companies" | "users" | "logs";
+type Tab = "companies" | "users" | "logs" | "modules";
 
 export default function AdminPage() {
   const { isDarkMode, toggleTheme } = useGraphStore();
@@ -57,6 +63,8 @@ export default function AdminPage() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
+  const [dynamicModules, setDynamicModules] = useState<any[]>([]);
+
   const [stats, setStats] = useState({
     companyCount: 0,
     userCount: 0,
@@ -97,17 +105,21 @@ export default function AdminPage() {
 
   const [companyState, companyAction, isCompanyPending] = useActionState(
     saveCompany,
-    {
-      success: false,
-      message: "",
-      timestamp: 0,
-    },
+    { success: false, message: "", timestamp: 0 },
   );
 
   const [uploadState, uploadAction, isUploading] = useActionState(uploadGraph, {
     success: false,
     message: "",
   });
+
+  const [moduleState, moduleAction, isModulePending] = useActionState(
+    createModule,
+    {
+      success: false,
+      message: "",
+    },
+  );
 
   useEffect(() => {
     if (isDarkMode) {
@@ -144,6 +156,17 @@ export default function AdminPage() {
   }, [uploadState]);
 
   useEffect(() => {
+    if (moduleState?.success) {
+      setToast({ message: moduleState.message, type: "success" });
+      const form = document.getElementById("module-form") as HTMLFormElement;
+      if (form) form.reset();
+      fetchData();
+    } else if (moduleState?.message) {
+      setToast({ message: moduleState.message, type: "error" });
+    }
+  }, [moduleState]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         profileRef.current &&
@@ -158,16 +181,19 @@ export default function AdminPage() {
 
   async function fetchData() {
     try {
-      const [companyData, userData, statsData, logsData] = await Promise.all([
-        getCompanies(),
-        getUsers(),
-        getStatistics(),
-        getGraphLogs(),
-      ]);
+      const [companyData, userData, statsData, logsData, modulesData] =
+        await Promise.all([
+          getCompanies(),
+          getUsers(),
+          getStatistics(),
+          getGraphLogs(),
+          getModules(),
+        ]);
       setCompanies(companyData);
       setUsers(userData);
       setStats(statsData);
       setLogs(logsData);
+      setDynamicModules(modulesData);
     } catch (error) {
       console.error("Failed to fetch admin data", error);
     }
@@ -196,6 +222,12 @@ export default function AdminPage() {
         return sorted;
     }
   }, [companies, sortOption]);
+
+  const allAvailableModules = useMemo(() => {
+    const dynamicNames = dynamicModules.map((m) => m.name);
+    const defaultNames = Object.keys(COLORS);
+    return Array.from(new Set([...defaultNames, ...dynamicNames]));
+  }, [dynamicModules]);
 
   function handleEdit(company: any) {
     setActiveTab("companies");
@@ -283,6 +315,29 @@ export default function AdminPage() {
       isDangerous: true,
       onConfirm: async () => {
         const res = await deleteUser(id);
+        if (res.success) {
+          showToast(res.message, "success");
+          fetchData();
+        } else {
+          showToast(res.message, "error");
+        }
+      },
+    });
+  }
+
+  function initiateDeleteModule(id: string, name: string) {
+    if (Object.keys(COLORS).includes(name)) {
+      showToast("Cannot delete default modules", "error");
+      return;
+    }
+
+    setConfirmation({
+      isOpen: true,
+      title: "Delete Module?",
+      message: `Are you sure you want to delete '${name}'? Existing nodes with this module will default to fallback colors.`,
+      isDangerous: true,
+      onConfirm: async () => {
+        const res = await deleteModule(id);
         if (res.success) {
           showToast(res.message, "success");
           fetchData();
@@ -454,26 +509,141 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6 border-b border-(--border)">
+      <div className="flex gap-4 mb-6 border-b border-(--border) overflow-x-auto">
         <button
           onClick={() => setActiveTab("companies")}
-          className={`pb-2 px-4 text-sm font-bold transition-all ${activeTab === "companies" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
+          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "companies" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
         >
           Manage Companies
         </button>
         <button
           onClick={() => setActiveTab("users")}
-          className={`pb-2 px-4 text-sm font-bold transition-all ${activeTab === "users" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
+          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "users" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
         >
           Manage Users
         </button>
         <button
+          onClick={() => setActiveTab("modules")}
+          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "modules" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
+        >
+          Manage Modules
+        </button>
+        <button
           onClick={() => setActiveTab("logs")}
-          className={`pb-2 px-4 text-sm font-bold transition-all ${activeTab === "logs" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
+          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "logs" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
         >
           Graph Activity
         </button>
       </div>
+
+      {activeTab === "modules" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-full">
+          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-fit">
+            <div className="flex items-center gap-2 mb-6">
+              <Palette className="w-5 h-5 text-orange-500" />
+              <h2 className="text-xl font-semibold text-(--text-main)">
+                Create New Module
+              </h2>
+            </div>
+            <form id="module-form" action={moduleAction} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1 text-(--text-sub)">
+                  Module Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="e.g. Finance"
+                  className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-(--text-sub)">
+                  Color Code
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    name="color"
+                    required
+                    defaultValue="#3b82f6"
+                    className="h-10 w-20 rounded cursor-pointer bg-transparent border-none"
+                  />
+                  <input
+                    type="text"
+                    name="color_text"
+                    placeholder="#3b82f6"
+                    disabled
+                    className="flex-1 p-2.5 rounded-lg bg-(--bg) border border-(--border) text-(--text-sub) text-sm"
+                  />
+                </div>
+              </div>
+              <button
+                disabled={isModulePending}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
+              >
+                {isModulePending ? "Creating..." : "Create Module"}
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-150">
+            <h2 className="text-xl font-semibold text-(--text-main) mb-6">
+              Existing Modules
+            </h2>
+            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+              {Object.entries(COLORS).map(([name, color]) => (
+                <div
+                  key={name}
+                  className="p-3 rounded-lg border border-(--border) bg-(--bg) flex justify-between items-center opacity-75"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-6 h-6 rounded-full border border-black/10"
+                      style={{ backgroundColor: color }}
+                    ></div>
+                    <div>
+                      <p className="font-bold text-sm text-(--text-main)">
+                        {name}
+                      </p>
+                      <p className="text-[10px] text-(--text-sub)">
+                        System Default
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {dynamicModules.map((mod) => (
+                <div
+                  key={mod._id}
+                  className="p-3 rounded-lg border border-(--border) bg-(--bg) flex justify-between items-center"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-6 h-6 rounded-full border border-black/10"
+                      style={{ backgroundColor: mod.color }}
+                    ></div>
+                    <div>
+                      <p className="font-bold text-sm text-(--text-main)">
+                        {mod.name}
+                      </p>
+                      <p className="text-[10px] text-(--text-sub)">Custom</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => initiateDeleteModule(mod._id, mod.name)}
+                    className="text-(--text-sub) hover:text-red-500 p-2 transition"
+                  >
+                    <Trash className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === "companies" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-full">
@@ -496,6 +666,7 @@ export default function AdminPage() {
                 </button>
               )}
             </div>
+
             <form
               action={companyAction}
               className="space-y-4 flex-1 flex flex-col"
@@ -520,7 +691,7 @@ export default function AdminPage() {
                   Allowed Modules
                 </label>
                 <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 custom-scrollbar flex-1 border border-(--border) rounded-lg p-2 bg-(--bg)/50">
-                  {AVAILABLE_MODULES.map((mod) => (
+                  {allAvailableModules.map((mod) => (
                     <label
                       key={mod}
                       className={`flex items-center space-x-2 p-3 rounded-lg cursor-pointer border transition-all h-fit ${formModules.has(mod) ? "bg-orange-500/10 border-orange-500/30" : "bg-(--card-bg) border-transparent hover:border-(--border)"}`}

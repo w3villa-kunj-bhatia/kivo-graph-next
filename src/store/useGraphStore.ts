@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import cytoscape from "cytoscape";
 import {
-  COLORS,
+  COLORS as DEFAULT_COLORS,
   COMPLEXITY_TYPES,
   ARCHETYPES,
   TOPOLOGY_TYPES,
@@ -38,11 +38,12 @@ interface GraphState {
     data: PopupData | null;
   };
 
-  // NEW: Connection Mode State
   connectionMode: {
     isActive: boolean;
     sourceId: string | null;
   };
+
+  moduleColors: Record<string, string>;
 
   setCy: (cy: cytoscape.Core | null) => void;
   setGraphData: (data: { nodes: any[]; edges: any[] } | null) => void;
@@ -61,11 +62,12 @@ interface GraphState {
   closePopup: () => void;
   setCompanyContext: (companyId: string | null, allowedKeys: string[]) => void;
 
-  // NEW: Editor Actions
   setConnectionMode: (isActive: boolean, sourceId?: string | null) => void;
   addNode: (node: any) => void;
   addEdge: (edge: any) => void;
   removeElement: (id: string) => void;
+
+  setModuleColors: (colors: Record<string, string>) => void;
 }
 
 export const useGraphStore = create<GraphState>()(
@@ -82,19 +84,20 @@ export const useGraphStore = create<GraphState>()(
 
       isFilterPanelOpen: false,
 
+      moduleColors: { ...DEFAULT_COLORS },
+
       activeFilters: new Set([
-        ...Object.keys(COLORS),
+        ...Object.keys(DEFAULT_COLORS),
         ...Object.keys(COMPLEXITY_TYPES),
         ...Object.keys(ARCHETYPES),
         ...Object.keys(TOPOLOGY_TYPES),
       ]),
 
       selectedCompanyId: null,
-      allowedModules: new Set(Object.keys(COLORS)),
+      allowedModules: new Set(Object.keys(DEFAULT_COLORS)),
 
       popup: { isOpen: false, data: null },
 
-      // NEW: Initial State
       connectionMode: { isActive: false, sourceId: null },
 
       setCy: (cy) => set({ cy }),
@@ -127,15 +130,17 @@ export const useGraphStore = create<GraphState>()(
           return { activeFilters: newSet };
         }),
 
-      resetFilters: () =>
-        set((s) => ({
+      resetFilters: () => {
+        const { moduleColors, allowedModules } = get();
+        set({
           activeFilters: new Set([
-            ...Array.from(s.allowedModules),
+            ...Array.from(allowedModules),
             ...Object.keys(COMPLEXITY_TYPES),
             ...Object.keys(ARCHETYPES),
             ...Object.keys(TOPOLOGY_TYPES),
           ]),
-        })),
+        });
+      },
 
       openPopup: (data) => set({ popup: { isOpen: true, data } }),
 
@@ -149,8 +154,10 @@ export const useGraphStore = create<GraphState>()(
       },
 
       setCompanyContext: (companyId, allowedKeys) => {
-        const { cy } = get();
-        const effectiveKeys = companyId ? allowedKeys : Object.keys(COLORS);
+        const { cy, moduleColors } = get();
+        const effectiveKeys = companyId
+          ? allowedKeys
+          : Object.keys(moduleColors);
         const newAllowed = new Set(effectiveKeys);
 
         set({
@@ -175,7 +182,6 @@ export const useGraphStore = create<GraphState>()(
         }
       },
 
-      // NEW: Editor Actions Implementation
       setConnectionMode: (isActive, sourceId = null) =>
         set({ connectionMode: { isActive, sourceId } }),
 
@@ -226,6 +232,16 @@ export const useGraphStore = create<GraphState>()(
           }
         }
       },
+
+      setModuleColors: (colors) => {
+        const { allowedModules, selectedCompanyId } = get();
+        let newAllowed = allowedModules;
+        if (!selectedCompanyId) {
+          newAllowed = new Set(Object.keys(colors));
+        }
+
+        set({ moduleColors: colors, allowedModules: newAllowed });
+      },
     }),
     {
       name: "graph-storage",
@@ -234,6 +250,7 @@ export const useGraphStore = create<GraphState>()(
         isDarkMode: state.isDarkMode,
         nodePositions: state.nodePositions,
         selectedCompanyId: state.selectedCompanyId,
+        moduleColors: state.moduleColors, 
       }),
     },
   ),

@@ -3,6 +3,8 @@ interface RawNode {
     id: string;
     label: string;
     complexity?: string;
+    module?: string; 
+    isManual?: boolean; 
   };
 }
 
@@ -51,7 +53,13 @@ export const processGraphData = (rawJson: GraphJson) => {
   const nodeModuleMap: Record<string, string> = {};
 
   rawJson.nodes.forEach((n) => {
-    const mod = classifyModule(n.data.id, n.data.label);
+    let mod;
+    if (n.data.isManual && n.data.module) {
+      mod = n.data.module;
+    } else {
+      mod = classifyModule(n.data.id, n.data.label);
+    }
+
     nodeModuleMap[n.data.id] = mod;
   });
 
@@ -77,7 +85,7 @@ export const processGraphData = (rawJson: GraphJson) => {
         label: cleanLabel(n.data.label),
         fullLabel: n.data.label,
         module: mod,
-        parent: "g_" + mod, 
+        parent: "g_" + mod,
         weight: degree,
         complexity: complexity,
         archetype: arch,

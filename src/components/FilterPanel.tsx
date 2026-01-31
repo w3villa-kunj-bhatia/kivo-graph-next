@@ -1,7 +1,6 @@
 "use client";
 import { useGraphStore } from "@/store/useGraphStore";
 import {
-  COLORS,
   COMPLEXITY_TYPES,
   TOPOLOGY_TYPES,
   ARCHETYPES,
@@ -20,6 +19,7 @@ export default function FilterPanel() {
     cy,
     allowedModules,
     selectedCompanyId,
+    moduleColors, 
   } = useGraphStore();
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function FilterPanel() {
         {renderSection("Risk Levels", COMPLEXITY_TYPES)}
         {renderSection("Topology", TOPOLOGY_TYPES)}
         {renderSection("Layers", ARCHETYPES)}
-        {renderSection("Modules", COLORS)}
+        {renderSection("Modules", moduleColors)}
       </div>
     </div>
   );

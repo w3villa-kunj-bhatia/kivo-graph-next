@@ -1,21 +1,16 @@
 import cytoscape from "cytoscape";
+import { COLORS as DEFAULT_COLORS } from "./constants";
 
-const COLORS: Record<string, string> = {
-  HRMS: "#f97316",
-  ATS: "#10b981",
-  CRM: "#3b82f6",
-  Projects: "#ec4899",
-  AI: "#8b5cf6",
-  Core: "#eab308",
-  Comm: "#6366f1",
-  Utils: "#64748b",
-  Other: "#94a3b8",
-};
-
-export const getGraphStyles = (isDark: boolean): Array<any> => {
+export const getGraphStyles = (
+  isDark: boolean,
+  customColors: Record<string, string> = {},
+): Array<any> => {
   const bg = isDark ? "#0f172a" : "#f1f5f9";
   const fg = isDark ? "#f1f5f9" : "#0f172a";
   const highlightColor = "#ef4444";
+
+  const COLORS = { ...DEFAULT_COLORS, ...customColors };
+  const fallbackColor = COLORS.Other || "#94a3b8";
 
   return [
     {
@@ -25,12 +20,12 @@ export const getGraphStyles = (isDark: boolean): Array<any> => {
         "background-opacity": 0,
         "border-width": 2,
         "border-color": ((e: any) =>
-          COLORS[e.data("module")] || COLORS.Other) as any,
+          COLORS[e.data("module")] || fallbackColor) as any,
         "border-style": "dashed",
         label: "data(label)",
         "font-size": 40,
         "font-weight": "bold",
-        color: ((e: any) => COLORS[e.data("module")] || COLORS.Other) as any,
+        color: ((e: any) => COLORS[e.data("module")] || fallbackColor) as any,
         "text-valign": "top",
         "text-margin-y": -20,
         padding: 40,
@@ -49,7 +44,7 @@ export const getGraphStyles = (isDark: boolean): Array<any> => {
         width: "mapData(weight, 0, 100, 40, 100)",
         height: "mapData(weight, 0, 100, 40, 100)",
         "background-color": ((e: any) =>
-          COLORS[e.data("module")] || COLORS.Other) as any,
+          COLORS[e.data("module")] || fallbackColor) as any,
         "text-background-color": bg,
         "text-background-opacity": 0.8,
         "text-background-padding": 2,

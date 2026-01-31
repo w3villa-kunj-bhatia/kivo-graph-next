@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import { COLORS } from "@/utils/constants";
+import { useGraphStore } from "@/store/useGraphStore";
 
 interface NodeModalProps {
   isOpen: boolean;
@@ -16,10 +16,12 @@ export default function NodeModal({
   onSubmit,
   position,
 }: NodeModalProps) {
+  const { moduleColors } = useGraphStore();
+  const modules =
+    Object.keys(moduleColors).length > 0 ? Object.keys(moduleColors) : ["Core"];
+
   const [label, setLabel] = useState("");
-  const [moduleType, setModuleType] = useState(
-    Object.keys(COLORS)[0] || "Core",
-  );
+  const [moduleType, setModuleType] = useState(modules[0]);
 
   if (!isOpen) return null;
 
@@ -29,6 +31,7 @@ export default function NodeModal({
       label.toLowerCase().replace(/[^a-z0-9]/g, "-") +
       "-" +
       Math.floor(Math.random() * 1000);
+
     onSubmit({
       id,
       label,
@@ -36,6 +39,7 @@ export default function NodeModal({
       module: moduleType,
       complexity: "normal",
       archetype: "Service",
+      isManual: true,
     });
     setLabel("");
     onClose();
@@ -75,7 +79,7 @@ export default function NodeModal({
               value={moduleType}
               onChange={(e) => setModuleType(e.target.value)}
             >
-              {Object.keys(COLORS).map((key) => (
+              {modules.map((key) => (
                 <option key={key} value={key}>
                   {key}
                 </option>

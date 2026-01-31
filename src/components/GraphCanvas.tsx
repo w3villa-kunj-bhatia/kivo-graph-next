@@ -9,12 +9,14 @@ import { getGraphStyles } from "@/utils/graphStyles";
 import { highlightNode, clearHighlights } from "@/utils/graphInteraction";
 import { useSession } from "next-auth/react";
 import NodeModal from "./GraphEditor/NodeModal";
-import ConfirmationModal from "./ConfirmationModal"; // Imported ConfirmationModal
+import ConfirmationModal from "./ConfirmationModal";
 import {
   addNodeToGraph,
   addEdgeToGraph,
   deleteGraphElement,
 } from "@/app/actions/graphActions";
+import { getModules } from "@/app/actions/moduleActions";
+import { COLORS as DEFAULT_COLORS } from "@/utils/constants";
 
 cytoscape.use(fcose);
 if (typeof cytoscape("core", "expandCollapse") === "undefined") {
@@ -36,17 +38,17 @@ export default function GraphCanvas() {
     nodePositions,
     setNodePositions,
     isLoading,
-    // New Store values
     connectionMode,
     setConnectionMode,
     addNode,
     addEdge,
     removeElement,
+    moduleColors,
+    setModuleColors,
   } = useGraphStore();
 
   const cyRef = useRef<cytoscape.Core | null>(null);
 
-  // --- EDITOR STATE ---
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -54,9 +56,8 @@ export default function GraphCanvas() {
     targetId?: string;
   } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [clickPos, setClickPos] = useState({ x: 0, y: 0 }); // Pos for new node
+  const [clickPos, setClickPos] = useState({ x: 0, y: 0 });
 
-  // --- CONFIRMATION STATE ---
   const [confirmation, setConfirmation] = useState<{
     isOpen: boolean;
     title: string;
@@ -71,13 +72,36 @@ export default function GraphCanvas() {
     onConfirm: () => {},
   });
 
-  // --- INITIALIZATION ---
+  useEffect(() => {
+    async function fetchDynamicModules() {
+      try {
+        const dynamicModules = await getModules();
+        const mergedColors = { ...DEFAULT_COLORS };
+        dynamicModules.forEach((m: any) => {
+          mergedColors[m.name] = m.color;
+        });
+        setModuleColors(mergedColors);
+      } catch (err) {
+        console.error("Failed to fetch modules", err);
+      }
+    }
+    fetchDynamicModules();
+  }, [setModuleColors]);
+
+  useEffect(() => {
+    if (cyRef.current && !cyRef.current.destroyed()) {
+      cyRef.current.json({
+        style: getGraphStyles(isDarkMode, moduleColors),
+      } as any);
+    }
+  }, [isDarkMode, moduleColors]);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     cyRef.current = cytoscape({
       container: containerRef.current,
-      style: getGraphStyles(isDarkMode),
+      style: getGraphStyles(isDarkMode, moduleColors),
       minZoom: 0.05,
       maxZoom: 3,
       wheelSensitivity: 0.2,
@@ -126,15 +150,12 @@ export default function GraphCanvas() {
       });
     });
 
-    // --- INTERACTION HANDLERS ---
-
-    // 1. Right Click (Context Menu)
     cyRef.current.on("cxttap", (e) => {
       if (!isAdmin) return;
       const target = e.target;
       const isBg = target === cyRef.current;
 
-      setClickPos(e.position); // Save Cytoscape coordinates for new node
+      setClickPos(e.position);
 
       setContextMenu({
         x: e.originalEvent.clientX,
@@ -144,11 +165,9 @@ export default function GraphCanvas() {
       });
     });
 
-    // 2. Left Click (Normal + Connection Logic)
     cyRef.current.on("tap", (e) => {
-      setContextMenu(null); // Close menu
+      setContextMenu(null);
 
-      // Connection Mode Logic
       if (
         useGraphStore.getState().connectionMode.isActive &&
         e.target.isNode()
@@ -162,7 +181,6 @@ export default function GraphCanvas() {
         }
       }
 
-      // Popup Logic
       if (e.target === cyRef.current) {
         closePopup();
       }
@@ -194,30 +212,26 @@ export default function GraphCanvas() {
 
     return () => {
       if (cyRef.current) {
-        cyRef.current.destroy();
+        if (!cyRef.current.destroyed()) {
+          cyRef.current.destroy();
+        }
+        cyRef.current = null;
         setCy(null);
       }
     };
-  }, [setCy, isAdmin]); // Re-run if admin status changes
+  }, [setCy, isAdmin]);
 
   useEffect(() => {
-    if (cyRef.current) {
-      cyRef.current.json({ style: getGraphStyles(isDarkMode) } as any);
-    }
-  }, [isDarkMode]);
-
-  useEffect(() => {
-    if (!popup.isOpen && cyRef.current) {
+    if (!popup.isOpen && cyRef.current && !cyRef.current.destroyed()) {
       clearHighlights(cyRef.current);
       cyRef.current.elements().unselect();
     }
   }, [popup.isOpen]);
 
-  // --- EDITOR HANDLERS ---
   const handleCreateNode = async (data: any) => {
     const newNode = { ...data, ...clickPos };
-    addNode(newNode); // Optimistic UI
-    await addNodeToGraph(newNode); // DB Save (Creates Log)
+    addNode(newNode);
+    await addNodeToGraph(newNode);
   };
 
   const handleCreateEdge = async (source: string, target: string) => {
@@ -225,16 +239,15 @@ export default function GraphCanvas() {
     const newEdge = { id: edgeId, source, target };
     addEdge(newEdge);
     setConnectionMode(false, null);
-    await addEdgeToGraph(newEdge); // DB Save (Creates Log)
+    await addEdgeToGraph(newEdge);
   };
 
-  // --- DELETE WITH CONFIRMATION ---
   const initiateDelete = () => {
     if (!contextMenu?.targetId) return;
     const id = contextMenu.targetId;
     const type = contextMenu.type;
 
-    setContextMenu(null); // Close context menu
+    setContextMenu(null);
 
     setConfirmation({
       isOpen: true,
@@ -242,8 +255,8 @@ export default function GraphCanvas() {
       message: `Are you sure you want to delete this ${type}? This action will be logged.`,
       isDangerous: true,
       onConfirm: async () => {
-        removeElement(id); // Optimistic UI
-        await deleteGraphElement(id); // DB Save (Creates Log)
+        removeElement(id);
+        await deleteGraphElement(id);
       },
     });
   };
@@ -269,7 +282,6 @@ export default function GraphCanvas() {
         </div>
       )}
 
-      {/* --- CONFIRMATION MODAL --- */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         onClose={() => setConfirmation({ ...confirmation, isOpen: false })}
@@ -279,7 +291,6 @@ export default function GraphCanvas() {
         isDangerous={confirmation.isDangerous}
       />
 
-      {/* --- CONNECTION MODE BANNER --- */}
       {connectionMode.isActive && (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
           <div
@@ -294,7 +305,6 @@ export default function GraphCanvas() {
         </div>
       )}
 
-      {/* --- CONTEXT MENU --- */}
       {contextMenu && (
         <div
           className="absolute z-50 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-gray-200 dark:border-slate-700 py-1 min-w-40 animate-in fade-in zoom-in-95 duration-100"
@@ -323,7 +333,7 @@ export default function GraphCanvas() {
               </button>
               <div className="h-px bg-gray-100 dark:bg-slate-700 my-1" />
               <button
-                onClick={initiateDelete} // Triggers confirmation
+                onClick={initiateDelete}
                 className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm"
               >
                 Delete Node
@@ -333,7 +343,7 @@ export default function GraphCanvas() {
 
           {contextMenu.type === "edge" && (
             <button
-              onClick={initiateDelete} // Triggers confirmation
+              onClick={initiateDelete}
               className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm"
             >
               Delete Edge
