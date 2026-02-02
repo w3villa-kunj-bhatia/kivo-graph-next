@@ -196,14 +196,14 @@ export default function GraphCanvas() {
 
       const neighbors = node.neighborhood("node[!isGroup]").map((n: any) => ({
         id: n.id(),
-        label: n.data("label"),
+        label: n.data("fullLabel") || n.data("label"),
         module: n.data("module"),
       }));
 
       openPopup({
         id: d.id,
         label: d.label,
-        fullLabel: d.fullLabel,
+        fullLabel: d.fullLabel || d.label,
         module: d.module,
         connections: node.degree(false),
         neighbors: neighbors,
