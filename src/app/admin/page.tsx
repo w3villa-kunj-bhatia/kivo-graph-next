@@ -54,6 +54,7 @@ import {
   Link as LinkIcon,
   FileUp,
   Palette,
+  Activity,
 } from "lucide-react";
 
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
@@ -82,8 +83,10 @@ export default function AdminPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const [selectedModuleColor, setSelectedModuleColor] = useState("#3b82f6");
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
+  const uploadFormRef = useRef<HTMLFormElement>(null);
   const { data: session } = useSession();
 
   const [toast, setToast] = useState<{
@@ -154,6 +157,10 @@ export default function AdminPage() {
         message: uploadState.message || "Graph updated successfully",
         type: "success",
       });
+      setSelectedFileName(null);
+      if (uploadFormRef.current) {
+        uploadFormRef.current.reset();
+      }
       fetchData();
     } else if (uploadState?.message) {
       setToast({ message: uploadState.message, type: "error" });
@@ -233,6 +240,15 @@ export default function AdminPage() {
     const defaultNames = Object.keys(COLORS);
     return Array.from(new Set([...defaultNames, ...dynamicNames]));
   }, [dynamicModules]);
+
+  const uploadLogs = useMemo(
+    () => logs.filter((log) => !log.fileName.startsWith("Manual")),
+    [logs],
+  );
+  const activityLogs = useMemo(
+    () => logs.filter((log) => log.fileName.startsWith("Manual")),
+    [logs],
+  );
 
   function handleEdit(company: any) {
     setActiveTab("companies");
@@ -563,15 +579,11 @@ export default function AdminPage() {
                   className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
                 />
               </div>
-              {/* Find the "Create New Module" form in your Manage Modules tab */}
               <div>
                 <label className="block text-sm mb-2 text-(--text-sub)">
                   Choose Module Color
                 </label>
-
-                {/* Hidden input to ensure the color is still sent via the form action */}
                 <input type="hidden" name="color" value={selectedModuleColor} />
-
                 <div className="flex flex-wrap gap-2 p-3 bg-(--bg) border border-(--border) rounded-lg mb-2">
                   {PRESET_COLORS.map((color) => (
                     <button
@@ -587,8 +599,6 @@ export default function AdminPage() {
                       title={color}
                     />
                   ))}
-
-                  {/* Optional: Keep a custom picker at the end for flexibility */}
                   <div className="relative w-8 h-8">
                     <input
                       type="color"
@@ -610,7 +620,6 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
-
                 <p className="text-[10px] text-(--text-sub)">
                   Selected:{" "}
                   <span className="font-mono uppercase">
@@ -939,7 +948,11 @@ export default function AdminPage() {
               latest upload automatically becomes the active graph.
             </p>
 
-            <form action={uploadAction} className="space-y-4">
+            <form
+              ref={uploadFormRef}
+              action={uploadAction}
+              className="space-y-4"
+            >
               <input
                 type="hidden"
                 name="uploaderEmail"
@@ -947,19 +960,30 @@ export default function AdminPage() {
               />
 
               <div className="border-2 border-dashed border-(--border) rounded-lg p-8 flex flex-col items-center justify-center text-center hover:border-orange-500/50 transition bg-(--bg)/50 relative group">
-                <FileJson className="w-8 h-8 text-(--text-sub) mb-2 group-hover:text-orange-500 transition-colors" />
+                <FileJson
+                  className={`w-8 h-8 mb-2 transition-colors ${selectedFileName ? "text-orange-500" : "text-(--text-sub) group-hover:text-orange-500"}`}
+                />
                 <label className="cursor-pointer inset-0 absolute w-full h-full flex items-center justify-center">
                   <input
                     type="file"
                     name="file"
                     accept=".json"
                     required
+                    onChange={(e) =>
+                      setSelectedFileName(e.target.files?.[0]?.name || null)
+                    }
                     className="opacity-0 w-full h-full cursor-pointer"
                   />
                 </label>
-                <span className="text-orange-500 font-bold hover:underline pointer-events-none">
-                  Click to browse
-                </span>
+                {selectedFileName ? (
+                  <span className="text-orange-500 font-bold break-all px-4">
+                    Selected: {selectedFileName}
+                  </span>
+                ) : (
+                  <span className="text-orange-500 font-bold hover:underline pointer-events-none">
+                    Click to browse
+                  </span>
+                )}
                 <p className="text-xs text-(--text-sub) mt-1 pointer-events-none">
                   JSON files only
                 </p>
@@ -976,82 +1000,146 @@ export default function AdminPage() {
             </form>
           </div>
 
-          <div className="md:col-span-2 bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
-            <div className="flex items-center gap-2 mb-6">
-              <History className="w-5 h-5 text-(--text-main)" />
-              <h2 className="text-xl font-semibold text-(--text-main)">
-                Version History
-              </h2>
-            </div>
+          <div className="md:col-span-2 space-y-6">
+            <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
+              <div className="flex items-center gap-2 mb-6">
+                <History className="w-5 h-5 text-(--text-main)" />
+                <h2 className="text-xl font-semibold text-(--text-main)">
+                  File Upload History
+                </h2>
+              </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
-                    <th className="py-3 px-4">Action / File</th>
-                    <th className="py-3 px-4">Performed By</th>
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {logs.map((log, index) => {
-                    const display = getLogDisplayData(log.fileName);
-                    const LogIcon = display.icon;
-                    return (
-                      <tr
-                        key={log._id}
-                        className="border-b border-(--border) hover:bg-(--bg) transition-colors"
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
-                            >
-                              <LogIcon className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
+              <div className="overflow-x-auto max-h-55 custom-scrollbar relative">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-(--card-bg) z-10 shadow-sm">
+                    <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
+                      <th className="py-3 px-4">File Name</th>
+                      <th className="py-3 px-4">Uploaded By</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {uploadLogs.map((log, index) => {
+                      const display = getLogDisplayData(log.fileName);
+                      const LogIcon = display.icon;
+                      return (
+                        <tr
+                          key={log._id}
+                          className="border-b border-(--border) hover:bg-(--bg) transition-colors"
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
+                              >
+                                <LogIcon className="w-4 h-4" />
+                              </div>
                               <p className="font-bold text-(--text-main) text-sm truncate">
                                 {display.details}
                               </p>
-                              <span className="text-[10px] uppercase font-bold text-(--text-sub)">
-                                {display.type}
-                              </span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-(--text-sub)">
-                          {log.uploaderEmail}
-                        </td>
-                        <td className="py-3 px-4 text-(--text-sub)">
-                          {new Date(log.uploadedAt).toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          {index === 0 ? (
-                            <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold border border-green-500/20">
-                              <CheckCircle className="w-3 h-3" /> Active
-                            </span>
-                          ) : (
-                            <span className="text-xs text-(--text-sub) italic">
-                              Archived
-                            </span>
-                          )}
+                          </td>
+                          <td className="py-3 px-4 text-(--text-sub)">
+                            {log.uploaderEmail}
+                          </td>
+                          <td className="py-3 px-4 text-(--text-sub)">
+                            {new Date(log.uploadedAt).toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {index === 0 ? (
+                              <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold border border-green-500/20">
+                                <CheckCircle className="w-3 h-3" /> Active
+                              </span>
+                            ) : (
+                              <span className="text-xs text-(--text-sub) italic">
+                                Archived
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {uploadLogs.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="text-center py-10 text-(--text-sub) italic"
+                        >
+                          No file uploads found.
                         </td>
                       </tr>
-                    );
-                  })}
-                  {logs.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="text-center py-10 text-(--text-sub) italic"
-                      >
-                        No history found. Upload a graph to get started.
-                      </td>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
+              <div className="flex items-center gap-2 mb-6">
+                <Activity className="w-5 h-5 text-(--text-main)" />
+                <h2 className="text-xl font-semibold text-(--text-main)">
+                  Manual Modification History
+                </h2>
+              </div>
+
+              <div className="overflow-x-auto max-h-55 custom-scrollbar relative">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-(--card-bg) z-10 shadow-sm">
+                    <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
+                      <th className="py-3 px-4">Action</th>
+                      <th className="py-3 px-4">Performed By</th>
+                      <th className="py-3 px-4">Date</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-sm">
+                    {activityLogs.map((log) => {
+                      const display = getLogDisplayData(log.fileName);
+                      const LogIcon = display.icon;
+                      return (
+                        <tr
+                          key={log._id}
+                          className="border-b border-(--border) hover:bg-(--bg) transition-colors"
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
+                              >
+                                <LogIcon className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-(--text-main) text-sm truncate">
+                                  {display.details}
+                                </p>
+                                <span className="text-[10px] uppercase font-bold text-(--text-sub)">
+                                  {display.type}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-(--text-sub)">
+                            {log.uploaderEmail}
+                          </td>
+                          <td className="py-3 px-4 text-(--text-sub)">
+                            {new Date(log.uploadedAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {activityLogs.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="text-center py-10 text-(--text-sub) italic"
+                        >
+                          No manual modifications recorded.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
