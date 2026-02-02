@@ -30,5 +30,6 @@ export const TOPOLOGY_TYPES = {
 export const PRESET_COLORS = [
   "#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", 
   "#ec4899", "#06b6d4", "#f97316", "#14b8a6", "#6366f1",
-  "#84cc16", "#a855f7", "#64748b", "#d946ef", "#fbbf24"
+  "#84cc16", "#a855f7", "#64748b", "#d946ef", "#fbbf24",
+  "#22c55e", "#0ea5e9", "#e11d48", "#7c3aed", "#f43f5e", 
 ];
