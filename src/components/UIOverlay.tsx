@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { COLORS } from "@/utils/constants";
 import { getGraphStyles } from "@/utils/graphStyles";
 import CompanySelector from "./CompanySelector";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -35,6 +34,7 @@ export default function UIOverlay() {
     toggleFilterPanel,
     setGraphData,
     setIsLoading,
+    moduleColors,
   } = useGraphStore();
 
   const { data: session, status } = useSession();
@@ -56,9 +56,9 @@ export default function UIOverlay() {
     }
 
     if (cy && !cy.destroyed()) {
-      cy.style(getGraphStyles(isDarkMode));
+      cy.style(getGraphStyles(isDarkMode, moduleColors));
     }
-  }, [isDarkMode, cy]);
+  }, [isDarkMode, cy, moduleColors]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -237,6 +237,10 @@ export default function UIOverlay() {
     setSuggestions(matches);
   }, [searchTerm, cy]);
 
+  const getNodeColor = (modName: string) => {
+    return moduleColors[modName] || "#94a3b8";
+  };
+
   return (
     <div className="absolute top-0 left-0 w-full z-50 pointer-events-auto">
       <nav className="relative w-full bg-(--card-bg)/90 backdrop-blur-md border-b border-(--border) px-4 py-3 flex flex-col lg:flex-row items-center lg:justify-between shadow-sm transition-all gap-y-3 lg:gap-y-0">
@@ -372,8 +376,8 @@ export default function UIOverlay() {
                       <span
                         className="text-[10px] uppercase font-bold px-1.5 rounded border opacity-70 whitespace-nowrap"
                         style={{
-                          color: COLORS[s.module],
-                          borderColor: COLORS[s.module],
+                          color: getNodeColor(s.module),
+                          borderColor: getNodeColor(s.module),
                         }}
                       >
                         {s.module}

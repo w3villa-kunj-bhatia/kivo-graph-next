@@ -131,7 +131,7 @@ export const useGraphStore = create<GraphState>()(
         }),
 
       resetFilters: () => {
-        const { moduleColors, allowedModules } = get();
+        const { allowedModules } = get();
         set({
           activeFilters: new Set([
             ...Array.from(allowedModules),
@@ -234,13 +234,25 @@ export const useGraphStore = create<GraphState>()(
       },
 
       setModuleColors: (colors) => {
-        const { allowedModules, selectedCompanyId } = get();
+        const { allowedModules, selectedCompanyId, activeFilters } = get();
+
         let newAllowed = allowedModules;
         if (!selectedCompanyId) {
           newAllowed = new Set(Object.keys(colors));
         }
 
-        set({ moduleColors: colors, allowedModules: newAllowed });
+        const newActiveFilters = new Set(activeFilters);
+        Object.keys(colors).forEach((key) => {
+          if (newAllowed.has(key)) {
+            newActiveFilters.add(key);
+          }
+        });
+
+        set({
+          moduleColors: colors,
+          allowedModules: newAllowed,
+          activeFilters: newActiveFilters,
+        });
       },
     }),
     {
@@ -250,7 +262,7 @@ export const useGraphStore = create<GraphState>()(
         isDarkMode: state.isDarkMode,
         nodePositions: state.nodePositions,
         selectedCompanyId: state.selectedCompanyId,
-        moduleColors: state.moduleColors, 
+        moduleColors: state.moduleColors,
       }),
     },
   ),

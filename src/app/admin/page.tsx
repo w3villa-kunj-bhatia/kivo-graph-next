@@ -7,6 +7,9 @@ import {
   getCompanies,
   getStatistics,
 } from "@/app/actions/companyActions";
+
+import { PRESET_COLORS } from "@/utils/constants";
+
 import {
   getUsers,
   toggleUserRole,
@@ -77,6 +80,8 @@ export default function AdminPage() {
   const [formName, setFormName] = useState("");
   const [formModules, setFormModules] = useState<Set<string>>(new Set());
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const [selectedModuleColor, setSelectedModuleColor] = useState("#3b82f6");
 
   const profileRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
@@ -558,26 +563,60 @@ export default function AdminPage() {
                   className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
                 />
               </div>
+              {/* Find the "Create New Module" form in your Manage Modules tab */}
               <div>
-                <label className="block text-sm mb-1 text-(--text-sub)">
-                  Color Code
+                <label className="block text-sm mb-2 text-(--text-sub)">
+                  Choose Module Color
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    name="color"
-                    required
-                    defaultValue="#3b82f6"
-                    className="h-10 w-20 rounded cursor-pointer bg-transparent border-none"
-                  />
-                  <input
-                    type="text"
-                    name="color_text"
-                    placeholder="#3b82f6"
-                    disabled
-                    className="flex-1 p-2.5 rounded-lg bg-(--bg) border border-(--border) text-(--text-sub) text-sm"
-                  />
+
+                {/* Hidden input to ensure the color is still sent via the form action */}
+                <input type="hidden" name="color" value={selectedModuleColor} />
+
+                <div className="flex flex-wrap gap-2 p-3 bg-(--bg) border border-(--border) rounded-lg mb-2">
+                  {PRESET_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setSelectedModuleColor(color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 ${
+                        selectedModuleColor === color
+                          ? "border-orange-500 scale-110 shadow-lg"
+                          : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+
+                  {/* Optional: Keep a custom picker at the end for flexibility */}
+                  <div className="relative w-8 h-8">
+                    <input
+                      type="color"
+                      value={selectedModuleColor}
+                      onChange={(e) => setSelectedModuleColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-dashed border-(--text-sub) flex items-center justify-center text-(--text-sub)"
+                      style={{
+                        backgroundColor: PRESET_COLORS.includes(
+                          selectedModuleColor,
+                        )
+                          ? "transparent"
+                          : selectedModuleColor,
+                      }}
+                    >
+                      {!PRESET_COLORS.includes(selectedModuleColor) ? "" : "+"}
+                    </div>
+                  </div>
                 </div>
+
+                <p className="text-[10px] text-(--text-sub)">
+                  Selected:{" "}
+                  <span className="font-mono uppercase">
+                    {selectedModuleColor}
+                  </span>
+                </p>
               </div>
               <button
                 disabled={isModulePending}
