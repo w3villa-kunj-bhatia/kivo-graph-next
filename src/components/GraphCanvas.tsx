@@ -6,7 +6,11 @@ import fcose from "cytoscape-fcose";
 import expandCollapse from "cytoscape-expand-collapse";
 import { useGraphStore } from "@/store/useGraphStore";
 import { getGraphStyles } from "@/utils/graphStyles";
-import { highlightNode, clearHighlights } from "@/utils/graphInteraction";
+import {
+  highlightNode,
+  clearHighlights,
+  applyFiltersToGraph,
+} from "@/utils/graphInteraction";
 import { useSession } from "next-auth/react";
 import NodeModal from "./GraphEditor/NodeModal";
 import ConfirmationModal from "./ConfirmationModal";
@@ -14,6 +18,7 @@ import {
   addNodeToGraph,
   addEdgeToGraph,
   deleteGraphElement,
+  disconnectNodes,
 } from "@/app/actions/graphActions";
 import { getModules } from "@/app/actions/moduleActions";
 import { COLORS as DEFAULT_COLORS } from "@/utils/constants";
@@ -26,7 +31,11 @@ if (typeof cytoscape("core", "expandCollapse") === "undefined") {
 export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "admin";
+
+  const isAdminRef = useRef(false);
+  useEffect(() => {
+    isAdminRef.current = session?.user?.role === "admin";
+  }, [session]);
 
   const {
     setCy,
@@ -40,11 +49,14 @@ export default function GraphCanvas() {
     isLoading,
     connectionMode,
     setConnectionMode,
+    disconnectionMode,
+    setDisconnectionMode,
     addNode,
     addEdge,
     removeElement,
     moduleColors,
     setModuleColors,
+    activeFilters,
   } = useGraphStore();
 
   const cyRef = useRef<cytoscape.Core | null>(null);
@@ -55,6 +67,7 @@ export default function GraphCanvas() {
     type: "node" | "edge" | "bg";
     targetId?: string;
   } | null>(null);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [clickPos, setClickPos] = useState({ x: 0, y: 0 });
 
@@ -99,127 +112,151 @@ export default function GraphCanvas() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    cyRef.current = cytoscape({
-      container: containerRef.current,
-      style: getGraphStyles(isDarkMode, moduleColors),
-      minZoom: 0.05,
-      maxZoom: 3,
-      wheelSensitivity: 0.2,
-    });
-
-    (cyRef.current as any).expandCollapse({
-      layoutBy: null,
-      fisheye: false,
-      animate: true,
-      undoable: false,
-    });
-
-    if (graphData) {
-      const nodesWithPositions = graphData.nodes.map((node) => {
-        const savedPos = nodePositions[node.data.id];
-        if (savedPos) {
-          return { ...node, position: savedPos };
-        }
-        return node;
+    if (!cyRef.current) {
+      const cy = cytoscape({
+        container: containerRef.current,
+        style: getGraphStyles(isDarkMode, moduleColors),
+        minZoom: 0.05,
+        maxZoom: 3,
+        wheelSensitivity: 0.2,
       });
 
-      cyRef.current.add(nodesWithPositions);
-      cyRef.current.add(graphData.edges);
-
-      const hasSavedPositions = Object.keys(nodePositions).length > 0;
-
-      cyRef.current
-        .layout({
-          name: hasSavedPositions ? "preset" : "fcose",
-          animate: false,
-          randomize: false,
-          nodeRepulsion: 4500,
-          idealEdgeLength: 100,
-          fit: !hasSavedPositions,
-        } as any)
-        .run();
-    }
-
-    setCy(cyRef.current);
-
-    cyRef.current.on("dragfree", "node", (e) => {
-      const node = e.target;
-      const pos = node.position();
-      setNodePositions({
-        [node.id()]: { x: pos.x, y: pos.y },
+      (cy as any).expandCollapse({
+        layoutBy: null,
+        fisheye: false,
+        animate: true,
+        undoable: false,
       });
-    });
 
-    cyRef.current.on("cxttap", (e) => {
-      if (!isAdmin) return;
-      const target = e.target;
-      const isBg = target === cyRef.current;
+      cyRef.current = cy;
+      setCy(cy);
 
-      setClickPos(e.position);
-
-      setContextMenu({
-        x: e.originalEvent.clientX,
-        y: e.originalEvent.clientY,
-        type: isBg ? "bg" : target.isNode() ? "node" : "edge",
-        targetId: isBg ? undefined : target.id(),
+      cy.on("dragfree", "node", (e) => {
+        const node = e.target;
+        const pos = node.position();
+        setNodePositions({ [node.id()]: { x: pos.x, y: pos.y } });
       });
-    });
 
-    cyRef.current.on("tap", (e) => {
-      setContextMenu(null);
+      cy.on("cxttap", (e) => {
+        if (!isAdminRef.current) return;
 
-      if (
-        useGraphStore.getState().connectionMode.isActive &&
-        e.target.isNode()
-      ) {
-        const sourceId = useGraphStore.getState().connectionMode.sourceId;
-        const targetId = e.target.id();
+        const target = e.target;
+        const isBg = target === cy;
+        const { clientX, clientY } = e.originalEvent;
 
-        if (sourceId && sourceId !== targetId) {
-          handleCreateEdge(sourceId, targetId);
+        setClickPos(e.position);
+
+        setTimeout(() => {
+          setContextMenu({
+            x: clientX,
+            y: clientY,
+            type: isBg ? "bg" : target.isNode() ? "node" : "edge",
+            targetId: isBg ? undefined : target.id(),
+          });
+        }, 10);
+      });
+
+      cy.on("tap", (e) => {
+        setContextMenu(null);
+
+        const target = e.target;
+
+        if (target === cy) {
+          closePopup();
           return;
         }
-      }
 
-      if (e.target === cyRef.current) {
-        closePopup();
-      }
-    });
+        if (target.isNode && target.isNode()) {
+          const targetId = target.id();
+          const state = useGraphStore.getState();
 
-    cyRef.current.on("tap", "node[!isGroup]", (e) => {
-      if (useGraphStore.getState().connectionMode.isActive) return;
+          if (state.connectionMode.isActive) {
+            const sourceId = state.connectionMode.sourceId;
+            if (sourceId && sourceId !== targetId) {
+              handleCreateEdge(sourceId, targetId);
+              return;
+            }
+          }
 
-      const node = e.target;
-      const d = node.data();
-
-      highlightNode(cyRef.current!, node.id());
-
-      const neighbors = node.neighborhood("node[!isGroup]").map((n: any) => ({
-        id: n.id(),
-        label: n.data("fullLabel") || n.data("label"),
-        module: n.data("module"),
-      }));
-
-      openPopup({
-        id: d.id,
-        label: d.label,
-        fullLabel: d.fullLabel || d.label,
-        module: d.module,
-        connections: node.degree(false),
-        neighbors: neighbors,
-      });
-    });
-
-    return () => {
-      if (cyRef.current) {
-        if (!cyRef.current.destroyed()) {
-          cyRef.current.destroy();
+          if (state.disconnectionMode.isActive) {
+            const sourceId = state.disconnectionMode.sourceId;
+            if (sourceId && sourceId !== targetId) {
+              handleDisconnectNode(sourceId, targetId);
+              return;
+            }
+          }
         }
-        cyRef.current = null;
-        setCy(null);
-      }
-    };
-  }, [setCy, isAdmin]);
+      });
+
+      cy.on("tap", "node[!isGroup]", (e) => {
+        const state = useGraphStore.getState();
+        if (state.connectionMode.isActive || state.disconnectionMode.isActive)
+          return;
+
+        const node = e.target;
+        const d = node.data();
+
+        highlightNode(cy, node.id());
+
+        const neighbors = node.neighborhood("node[!isGroup]").map((n: any) => ({
+          id: n.id(),
+          label: n.data("fullLabel") || n.data("label"),
+          module: n.data("module"),
+        }));
+
+        openPopup({
+          id: d.id,
+          label: d.label,
+          fullLabel: d.fullLabel || d.label,
+          module: d.module,
+          connections: node.degree(false),
+          neighbors: neighbors,
+        });
+      });
+    }
+  }, [setCy]);
+  useEffect(() => {
+    if (graphData && cyRef.current) {
+      const cy = cyRef.current;
+
+      cy.batch(() => {
+        cy.elements().remove();
+
+        const nodesWithPositions = graphData.nodes.map((node) => {
+          const savedPos = nodePositions[node.data.id];
+          return savedPos ? { ...node, position: savedPos } : node;
+        });
+
+        cy.add(nodesWithPositions);
+
+        const validNodeIds = new Set(
+          nodesWithPositions.map((n: any) => n.data.id),
+        );
+        const safeEdges = graphData.edges.filter((edge: any) => {
+          return (
+            validNodeIds.has(edge.data.source) &&
+            validNodeIds.has(edge.data.target)
+          );
+        });
+
+        cy.add(safeEdges);
+
+        if (activeFilters) {
+          applyFiltersToGraph(cy, activeFilters);
+        }
+      });
+
+      const hasSavedPositions = Object.keys(nodePositions).length > 0;
+      cy.layout({
+        name: hasSavedPositions ? "preset" : "fcose",
+        animate: false,
+        randomize: false,
+        nodeRepulsion: 4500,
+        idealEdgeLength: 100,
+        fit: !hasSavedPositions,
+      } as any).run();
+    }
+  }, [graphData]);
 
   useEffect(() => {
     if (!popup.isOpen && cyRef.current && !cyRef.current.destroyed()) {
@@ -240,6 +277,25 @@ export default function GraphCanvas() {
     addEdge(newEdge);
     setConnectionMode(false, null);
     await addEdgeToGraph(newEdge);
+  };
+
+  const handleDisconnectNode = async (source: string, target: string) => {
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    const sourceNode = cy.getElementById(source);
+    const targetNode = cy.getElementById(target);
+    const edges = sourceNode.edgesWith(targetNode);
+
+    if (edges.length === 0) {
+      setDisconnectionMode(false, null);
+      return;
+    }
+
+    edges.remove();
+    setDisconnectionMode(false, null);
+
+    await disconnectNodes(source, target);
   };
 
   const initiateDelete = () => {
@@ -265,7 +321,13 @@ export default function GraphCanvas() {
     if (contextMenu?.targetId) {
       setConnectionMode(true, contextMenu.targetId);
       setContextMenu(null);
-      closePopup();
+    }
+  };
+
+  const startDisconnection = () => {
+    if (contextMenu?.targetId) {
+      setDisconnectionMode(true, contextMenu.targetId);
+      setContextMenu(null);
     }
   };
 
@@ -298,18 +360,38 @@ export default function GraphCanvas() {
             className="bg-blue-600 text-white px-6 py-2 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition flex items-center gap-2 font-semibold text-sm"
           >
             <span>Select a target node to connect...</span>
-            <span className="bg-white/20 px-2 rounded text-xs">
-              Click to Cancel
-            </span>
+            <span className="bg-white/20 px-2 rounded text-xs">Cancel</span>
+          </div>
+        </div>
+      )}
+
+      {disconnectionMode.isActive && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+          <div
+            onClick={() => setDisconnectionMode(false, null)}
+            className="bg-red-600 text-white px-6 py-2 rounded-full shadow-lg cursor-pointer hover:bg-red-700 transition flex items-center gap-2 font-semibold text-sm"
+          >
+            <span>Select a node to disconnect...</span>
+            <span className="bg-white/20 px-2 rounded text-xs">Cancel</span>
           </div>
         </div>
       )}
 
       {contextMenu && (
         <div
-          className="absolute z-50 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-gray-200 dark:border-slate-700 py-1 min-w-40 animate-in fade-in zoom-in-95 duration-100"
+          className="fixed inset-0 z-40 bg-transparent"
+          onClick={() => setContextMenu(null)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setContextMenu(null);
+          }}
+        />
+      )}
+
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-gray-200 dark:border-slate-700 py-1 min-w-44 animate-in fade-in zoom-in-95 duration-100"
           style={{ top: contextMenu.y, left: contextMenu.x }}
-          onMouseLeave={() => setContextMenu(null)}
         >
           {contextMenu.type === "bg" && (
             <button
@@ -317,7 +399,7 @@ export default function GraphCanvas() {
                 setModalOpen(true);
                 setContextMenu(null);
               }}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200"
+              className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 transition-colors"
             >
               Add Node Here
             </button>
@@ -331,10 +413,16 @@ export default function GraphCanvas() {
               >
                 Connect to...
               </button>
+              <button
+                onClick={startDisconnection}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200"
+              >
+                Disconnect from...
+              </button>
               <div className="h-px bg-gray-100 dark:bg-slate-700 my-1" />
               <button
                 onClick={initiateDelete}
-                className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm"
+                className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm font-medium"
               >
                 Delete Node
               </button>
@@ -344,7 +432,7 @@ export default function GraphCanvas() {
           {contextMenu.type === "edge" && (
             <button
               onClick={initiateDelete}
-              className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm"
+              className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-sm font-medium"
             >
               Delete Edge
             </button>
@@ -361,6 +449,7 @@ export default function GraphCanvas() {
 
       <div
         ref={containerRef}
+        onContextMenu={(e) => e.preventDefault()}
         className="w-screen h-screen absolute top-0 left-0 z-0 bg-(--bg) transition-colors duration-300"
       />
     </>

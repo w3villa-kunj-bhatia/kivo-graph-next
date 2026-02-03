@@ -8,8 +8,6 @@ import {
   getStatistics,
 } from "@/app/actions/companyActions";
 
-import { PRESET_COLORS } from "@/utils/constants";
-
 import {
   getUsers,
   toggleUserRole,
@@ -22,7 +20,9 @@ import {
   getModules,
 } from "@/app/actions/moduleActions";
 
-import { COLORS } from "@/utils/constants";
+import { savePolicy, getCompanyPolicies } from "@/app/actions/policyActions";
+
+import { COLORS, PRESET_COLORS, MODULE_FEATURES } from "@/utils/constants";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import ConfirmationModal from "@/components/ConfirmationModal";
@@ -55,6 +55,9 @@ import {
   FileUp,
   Palette,
   Activity,
+  Check,
+  LayoutGrid,
+  ListFilter,
 } from "lucide-react";
 
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
@@ -80,7 +83,12 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formModules, setFormModules] = useState<Set<string>>(new Set());
+  const [moduleFeatures, setModuleFeatures] = useState<
+    Record<string, Set<string>>
+  >({});
+
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
 
   const [selectedModuleColor, setSelectedModuleColor] = useState("#3b82f6");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -111,11 +119,6 @@ export default function AdminPage() {
     onConfirm: () => {},
   });
 
-  const [companyState, companyAction, isCompanyPending] = useActionState(
-    saveCompany,
-    { success: false, message: "", timestamp: 0 },
-  );
-
   const [uploadState, uploadAction, isUploading] = useActionState(uploadGraph, {
     success: false,
     message: "",
@@ -140,16 +143,6 @@ export default function AdminPage() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  useEffect(() => {
-    if (companyState?.success) {
-      setToast({ message: companyState.message, type: "success" });
-      resetForm();
-      fetchData();
-    } else if (companyState?.message) {
-      setToast({ message: companyState.message, type: "error" });
-    }
-  }, [companyState]);
 
   useEffect(() => {
     if (uploadState?.success) {
@@ -250,25 +243,124 @@ export default function AdminPage() {
     [logs],
   );
 
-  function handleEdit(company: any) {
+  async function handleEdit(company: any) {
     setActiveTab("companies");
     setEditingId(company._id);
     setFormName(company.name);
     setFormModules(new Set(company.allowedModules));
+
+    const policies = await getCompanyPolicies(company._id);
+    const featureMap: Record<string, Set<string>> = {};
+
+    Object.keys(policies).forEach((mod) => {
+      featureMap[mod] = new Set(policies[mod]);
+    });
+
+    setModuleFeatures(featureMap);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleModule(mod: string) {
     const newSet = new Set(formModules);
-    if (newSet.has(mod)) newSet.delete(mod);
-    else newSet.add(mod);
+    if (newSet.has(mod)) {
+      newSet.delete(mod);
+    } else {
+      newSet.add(mod);
+    }
     setFormModules(newSet);
+  }
+
+  function toggleFeature(mod: string, feature: string) {
+    setModuleFeatures((prev) => {
+      const currentFeatures = new Set(prev[mod] || []);
+      if (currentFeatures.has(feature)) {
+        currentFeatures.delete(feature);
+      } else {
+        currentFeatures.add(feature);
+      }
+      return { ...prev, [mod]: currentFeatures };
+    });
+  }
+
+  function toggleAllFeatures(mod: string) {
+    const features = MODULE_FEATURES[mod] || [];
+    setModuleFeatures((prev) => {
+      const currentFeatures = prev[mod] || new Set();
+      if (currentFeatures.size === features.length) {
+        const next = { ...prev };
+        delete next[mod];
+        return next;
+      } else {
+        return { ...prev, [mod]: new Set(features) };
+      }
+    });
   }
 
   function resetForm() {
     setEditingId(null);
     setFormName("");
     setFormModules(new Set());
+    setModuleFeatures({});
+  }
+
+  async function handleCompanySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSavingCompany(true);
+
+    const formData = new FormData();
+    if (editingId) formData.append("id", editingId);
+    formData.append("name", formName);
+
+    const moduleArray = Array.from(formModules);
+    moduleArray.forEach((m) => formData.append("modules", m));
+
+    formData.append(
+      "modulesConfig",
+      JSON.stringify(
+        moduleArray.map((m) => ({
+          moduleId: m,
+          features: Array.from(moduleFeatures[m] || []),
+        })),
+      ),
+    );
+
+    try {
+      const result = await saveCompany(null, formData);
+
+      if (result.success) {
+        if (result.message.includes("successfully")) {
+          let targetId = editingId;
+
+          if (!targetId) {
+            const refreshedCompanies = await getCompanies();
+            const newCompany = refreshedCompanies.find(
+              (c: any) => c.name === formName,
+            );
+            if (newCompany) targetId = newCompany._id;
+          }
+
+          if (targetId) {
+            await Promise.all(
+              Array.from(formModules).map((mod) => {
+                const features = Array.from(moduleFeatures[mod] || []);
+                return savePolicy(targetId!, mod, features);
+              }),
+            );
+          }
+        }
+
+        showToast(result.message, "success");
+        resetForm();
+        fetchData();
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (error) {
+      console.error(error);
+      showToast("An unexpected error occurred", "error");
+    } finally {
+      setIsSavingCompany(false);
+    }
   }
 
   function initiateDeleteCompany(id: string) {
@@ -557,6 +649,242 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {activeTab === "companies" && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 h-full">
+          <div
+            className={`bg-(--card-bg) p-6 rounded-xl border shadow-lg transition-colors flex flex-col h-full overflow-y-auto custom-scrollbar ${editingId ? "border-orange-500/50" : "border-(--border)"}`}
+          >
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-(--card-bg) z-10 pb-2 border-b border-(--border)">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-orange-500" />
+                <h2 className="text-xl font-semibold text-(--text-main)">
+                  {editingId ? "Edit Company" : "Add New Company"}
+                </h2>
+              </div>
+              {editingId && (
+                <button
+                  onClick={resetForm}
+                  className="text-xs flex items-center gap-1 bg-(--bg) hover:bg-(--border) px-2 py-1 rounded text-(--text-sub) transition"
+                >
+                  <X className="w-3 h-3" /> Cancel
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleCompanySubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-(--text-sub)">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="e.g. Acme Corp"
+                  className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold mb-3 text-(--text-sub)">
+                  <LayoutGrid className="w-4 h-4" />
+                  1. Active Modules
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {allAvailableModules.map((mod) => (
+                    <div
+                      key={mod}
+                      onClick={() => toggleModule(mod)}
+                      className={`
+                        cursor-pointer rounded-lg border p-3 flex items-center gap-3 transition-all select-none
+                        ${
+                          formModules.has(mod)
+                            ? "bg-orange-500/10 border-orange-500 shadow-sm"
+                            : "bg-(--bg) border-(--border) hover:border-orange-500/50"
+                        }
+                      `}
+                    >
+                      <div
+                        className={`
+                        w-5 h-5 rounded border flex items-center justify-center transition-colors
+                        ${
+                          formModules.has(mod)
+                            ? "bg-orange-500 border-orange-500"
+                            : "border-gray-400 dark:border-gray-600"
+                        }
+                      `}
+                      >
+                        {formModules.has(mod) && (
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          formModules.has(mod)
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-(--text-main)"
+                        }`}
+                      >
+                        {mod}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {Array.from(formModules).some((m) => MODULE_FEATURES[m]) && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <label className="flex items-center gap-2 text-sm font-semibold mb-3 text-(--text-sub)">
+                    <ListFilter className="w-4 h-4" />
+                    2. Configure Features
+                  </label>
+                  <div className="space-y-4 border-t border-(--border) pt-4">
+                    {Array.from(formModules).map((mod) => {
+                      const features = MODULE_FEATURES[mod];
+                      if (!features) return null;
+
+                      const selectedCount = moduleFeatures[mod]?.size || 0;
+                      const isAllSelected = selectedCount === features.length;
+
+                      return (
+                        <div
+                          key={mod}
+                          className="bg-(--bg) border border-(--border) rounded-xl overflow-hidden shadow-sm"
+                        >
+                          <div className="px-4 py-3 border-b border-(--border) flex justify-between items-center bg-(--card-bg)">
+                            <div className="flex items-center gap-3">
+                              <div className="w-1.5 h-5 bg-orange-500 rounded-full"></div>
+                              <h4 className="font-bold text-sm text-(--text-main)">
+                                {mod} Features
+                              </h4>
+                              <span className="text-[10px] font-mono text-(--text-sub) bg-(--border) px-2 py-0.5 rounded-full">
+                                {selectedCount} / {features.length}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleAllFeatures(mod)}
+                              className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline"
+                            >
+                              {isAllSelected ? "Deselect All" : "Select All"}
+                            </button>
+                          </div>
+
+                          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                            {features.map((feature) => (
+                              <label
+                                key={feature}
+                                className="flex items-start gap-2 cursor-pointer group p-1.5 rounded-lg hover:bg-(--card-bg) transition-colors"
+                              >
+                                <div className="relative flex items-center pt-0.5">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      moduleFeatures[mod]?.has(feature) || false
+                                    }
+                                    onChange={() => toggleFeature(mod, feature)}
+                                    className="peer appearance-none w-4 h-4 border border-gray-400 dark:border-gray-500 rounded checked:bg-orange-500 checked:border-orange-500 transition-colors"
+                                  />
+                                  <Check className="w-3 h-3 text-white absolute top-0.5 left-0.5 opacity-0 peer-checked:opacity-100 pointer-events-none" />
+                                </div>
+                                <span className="text-sm text-(--text-sub) group-hover:text-(--text-main) transition-colors leading-tight select-none">
+                                  {feature}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <button
+                disabled={isSavingCompany}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
+              >
+                {isSavingCompany
+                  ? editingId
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingId
+                    ? "Update Company"
+                    : "Create Company"}
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-150">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-(--text-main)">
+                Existing Companies
+              </h2>
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-(--text-sub)" />
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  className="bg-(--bg) border border-(--border) text-xs text-(--text-main) rounded px-2 py-1 outline-none focus:border-orange-500 cursor-pointer"
+                >
+                  <option value="name-asc">Name (A-Z)</option>
+                  <option value="name-desc">Name (Z-A)</option>
+                  <option value="modules-most">Modules (Most)</option>
+                  <option value="modules-least">Modules (Least)</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+              {sortedCompanies.map((company) => (
+                <div
+                  key={company._id}
+                  className={`p-4 rounded-lg border flex justify-between items-center group transition-all ${editingId === company._id ? "bg-orange-500/10 border-orange-500/50" : "bg-(--bg) border-(--border) hover:border-gray-500"}`}
+                >
+                  <div>
+                    <h3
+                      className={`font-bold text-lg ${editingId === company._id ? "text-orange-500" : "text-(--text-main)"}`}
+                    >
+                      {company.name}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {company.allowedModules.slice(0, 4).map((m: string) => (
+                        <span
+                          key={m}
+                          className="text-[10px] bg-(--card-bg) border border-(--border) px-2 py-0.5 rounded text-(--text-sub)"
+                        >
+                          {m}
+                        </span>
+                      ))}
+                      {company.allowedModules.length > 4 && (
+                        <span className="text-[10px] bg-(--card-bg) border border-(--border) px-2 py-0.5 rounded text-(--text-sub)">
+                          +{company.allowedModules.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(company)}
+                      className="text-(--text-sub) hover:text-blue-500 p-2 transition"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => initiateDeleteCompany(company._id)}
+                      className="text-(--text-sub) hover:text-red-500 p-2 transition"
+                    >
+                      <Trash className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === "modules" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-full">
           <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-fit">
@@ -686,157 +1014,6 @@ export default function AdminPage() {
                   >
                     <Trash className="w-4 h-4" />
                   </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "companies" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-full">
-          <div
-            className={`bg-(--card-bg) p-6 rounded-xl border shadow-lg transition-colors flex flex-col h-150 ${editingId ? "border-orange-500/50" : "border-(--border)"}`}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-500" />
-                <h2 className="text-xl font-semibold text-(--text-main)">
-                  {editingId ? "Edit Company" : "Add New Company"}
-                </h2>
-              </div>
-              {editingId && (
-                <button
-                  onClick={resetForm}
-                  className="text-xs flex items-center gap-1 bg-(--bg) hover:bg-(--border) px-2 py-1 rounded text-(--text-sub) transition"
-                >
-                  <X className="w-3 h-3" /> Cancel
-                </button>
-              )}
-            </div>
-
-            <form
-              action={companyAction}
-              className="space-y-4 flex-1 flex flex-col"
-            >
-              {editingId && <input type="hidden" name="id" value={editingId} />}
-              <div>
-                <label className="block text-sm mb-1 text-(--text-sub)">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Acme Corp"
-                  className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
-                />
-              </div>
-              <div className="flex-1 flex flex-col min-h-0">
-                <label className="block text-md mb-2 text-(--text-sub)">
-                  Allowed Modules
-                </label>
-                <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 custom-scrollbar flex-1 border border-(--border) rounded-lg p-2 bg-(--bg)/50">
-                  {allAvailableModules.map((mod) => (
-                    <label
-                      key={mod}
-                      className={`flex items-center space-x-2 p-3 rounded-lg cursor-pointer border transition-all h-fit ${formModules.has(mod) ? "bg-orange-500/10 border-orange-500/30" : "bg-(--card-bg) border-transparent hover:border-(--border)"}`}
-                    >
-                      <input
-                        type="checkbox"
-                        name="modules"
-                        value={mod}
-                        checked={formModules.has(mod)}
-                        onChange={() => toggleModule(mod)}
-                        className="accent-orange-500 w-4 h-4"
-                      />
-                      <span
-                        className={`text-md ${formModules.has(mod) ? "text-orange-500 font-medium" : "text-(--text-sub)"}`}
-                      >
-                        {mod}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <button
-                disabled={isCompanyPending}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
-              >
-                {isCompanyPending
-                  ? editingId
-                    ? "Updating..."
-                    : "Creating..."
-                  : editingId
-                    ? "Update Company"
-                    : "Create Company"}
-              </button>
-            </form>
-          </div>
-
-          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-150">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-(--text-main)">
-                Existing Companies
-              </h2>
-              <div className="flex items-center gap-2">
-                <ArrowUpDown className="w-4 h-4 text-(--text-sub)" />
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value as SortOption)}
-                  className="bg-(--bg) border border-(--border) text-xs text-(--text-main) rounded px-2 py-1 outline-none focus:border-orange-500 cursor-pointer"
-                >
-                  <option value="name-asc">Name (A-Z)</option>
-                  <option value="name-desc">Name (Z-A)</option>
-                  <option value="modules-most">Modules (Most)</option>
-                  <option value="modules-least">Modules (Least)</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
-              {sortedCompanies.map((company) => (
-                <div
-                  key={company._id}
-                  className={`p-4 rounded-lg border flex justify-between items-center group transition-all ${editingId === company._id ? "bg-orange-500/10 border-orange-500/50" : "bg-(--bg) border-(--border) hover:border-gray-500"}`}
-                >
-                  <div>
-                    <h3
-                      className={`font-bold text-lg ${editingId === company._id ? "text-orange-500" : "text-(--text-main)"}`}
-                    >
-                      {company.name}
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {company.allowedModules.slice(0, 4).map((m: string) => (
-                        <span
-                          key={m}
-                          className="text-[10px] bg-(--card-bg) border border-(--border) px-2 py-0.5 rounded text-(--text-sub)"
-                        >
-                          {m}
-                        </span>
-                      ))}
-                      {company.allowedModules.length > 4 && (
-                        <span className="text-[10px] bg-(--card-bg) border border-(--border) px-2 py-0.5 rounded text-(--text-sub)">
-                          +{company.allowedModules.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(company)}
-                      className="text-(--text-sub) hover:text-blue-500 p-2 transition"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => initiateDeleteCompany(company._id)}
-                      className="text-(--text-sub) hover:text-red-500 p-2 transition"
-                    >
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>

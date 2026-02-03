@@ -122,7 +122,18 @@ export default function UIOverlay() {
 
           cy.elements().remove();
           cy.add(elements.nodes);
-          cy.add(elements.edges);
+
+          const validNodeIds = new Set(
+            elements.nodes.map((n: any) => n.data.id),
+          );
+
+          const safeEdges = elements.edges.filter((edge: any) => {
+            const hasSource = validNodeIds.has(edge.data.source);
+            const hasTarget = validNodeIds.has(edge.data.target);
+            return hasSource && hasTarget;
+          });
+
+          cy.add(safeEdges);
 
           const layoutConfig: any = hasSavedPositions
             ? {

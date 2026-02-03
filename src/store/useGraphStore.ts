@@ -43,6 +43,11 @@ interface GraphState {
     sourceId: string | null;
   };
 
+  disconnectionMode: {
+    isActive: boolean;
+    sourceId: string | null;
+  };
+
   moduleColors: Record<string, string>;
 
   setCy: (cy: cytoscape.Core | null) => void;
@@ -63,6 +68,8 @@ interface GraphState {
   setCompanyContext: (companyId: string | null, allowedKeys: string[]) => void;
 
   setConnectionMode: (isActive: boolean, sourceId?: string | null) => void;
+  setDisconnectionMode: (isActive: boolean, sourceId?: string | null) => void;
+
   addNode: (node: any) => void;
   addEdge: (edge: any) => void;
   removeElement: (id: string) => void;
@@ -99,6 +106,7 @@ export const useGraphStore = create<GraphState>()(
       popup: { isOpen: false, data: null },
 
       connectionMode: { isActive: false, sourceId: null },
+      disconnectionMode: { isActive: false, sourceId: null },
 
       setCy: (cy) => set({ cy }),
       setGraphData: (data) => set({ graphData: data }),
@@ -185,6 +193,9 @@ export const useGraphStore = create<GraphState>()(
       setConnectionMode: (isActive, sourceId = null) =>
         set({ connectionMode: { isActive, sourceId } }),
 
+      setDisconnectionMode: (isActive, sourceId = null) =>
+        set({ disconnectionMode: { isActive, sourceId } }),
+
       addNode: (node) => {
         const { cy } = get();
         if (cy) {
@@ -219,17 +230,31 @@ export const useGraphStore = create<GraphState>()(
         }
       },
 
+      // FIX: Now removes element from graphData as well as Cytoscape
       removeElement: (id) => {
-        const { cy } = get();
+        const { cy, graphData } = get();
+
+        // 1. Remove from Visual Graph
         if (cy) {
           const el = cy.getElementById(id);
           if (el.nonempty()) {
             el.remove();
-            set((state) => ({
-              nodesCount: cy.nodes().length,
-              edgesCount: cy.edges().length,
-            }));
           }
+        }
+
+        // 2. Remove from Data State (Critical Fix)
+        if (graphData) {
+          const newNodes = graphData.nodes.filter((n) => n.data.id !== id);
+          const newEdges = graphData.edges.filter((e) => e.data.id !== id);
+
+          set({
+            graphData: {
+              nodes: newNodes,
+              edges: newEdges,
+            },
+            nodesCount: newNodes.length,
+            edgesCount: newEdges.length,
+          });
         }
       },
 

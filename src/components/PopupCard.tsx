@@ -43,7 +43,6 @@ export default function PopupCard() {
         className="absolute top-25 right-6 w-72 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-2xl z-50 overflow-hidden"
       >
         <div className="handle p-4 border-b border-(--border) flex justify-between items-start cursor-grab active:cursor-grabbing bg-(--bg)/50">
-          {/* Fix: Added flex-1 and min-w-0 to prevent text from breaking layout */}
           <div className="flex-1 min-w-0 mr-4">
             <span
               className="text-[10px] font-bold uppercase block mb-1"
@@ -89,7 +88,6 @@ export default function PopupCard() {
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: getNodeColor(n.module) }}
                 ></div>
-                {/* Fix: Added truncate and flex-1 to list items */}
                 <span
                   className="truncate flex-1 min-w-0"
                   style={{

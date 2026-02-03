@@ -52,6 +52,25 @@ export const getGraphStyles = (
       },
     },
     {
+      selector: "node[archetype = 'Feature']",
+      style: {
+        shape: "round-rectangle",
+        width: 140,
+        height: 32,
+        "font-size": 11,
+        "font-weight": "normal",
+        "text-valign": "center",
+        "text-halign": "center",
+        "text-margin-y": 0,
+        "background-opacity": 0.9,
+        "border-width": 1,
+        "border-style": "solid",
+        "border-color": fg,
+        "text-background-opacity": 0,
+        color: isDark ? "#fff" : "#000",
+      },
+    },
+    {
       selector: "node[complexity='high']",
       style: {
         "border-width": 4,

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { getCompanies } from "@/app/actions/companyActions";
+import { getCompanyGraph } from "@/app/actions/graphActions";
 import { useGraphStore } from "@/store/useGraphStore";
+import { processGraphData } from "@/utils/graphUtils";
 
 export default function CompanySelector() {
   const [companies, setCompanies] = useState<any[]>([]);
-  const setCompanyContext = useGraphStore((s) => s.setCompanyContext);
+  const { setCompanyContext, setGraphData, setIsLoading } = useGraphStore();
   const selectedId = useGraphStore((s) => s.selectedCompanyId);
 
   useEffect(() => {
@@ -17,17 +19,31 @@ export default function CompanySelector() {
     loadData();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
 
-    if (!id) {
-      setCompanyContext(null, []);
-      return;
-    }
+    setIsLoading(true);
 
-    const company = companies.find((c) => c._id === id);
-    if (company) {
-      setCompanyContext(company._id, company.allowedModules);
+    try {
+      if (!id) {
+        setCompanyContext(null, []);
+        const rawGraph = await getCompanyGraph();
+        const processed = processGraphData(rawGraph);
+        setGraphData(processed);
+      } else {
+        const company = companies.find((c) => c._id === id);
+        if (company) {
+          setCompanyContext(company._id, company.allowedModules);
+
+          const rawGraph = await getCompanyGraph(company._id);
+          const processed = processGraphData(rawGraph);
+          setGraphData(processed);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load company graph", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

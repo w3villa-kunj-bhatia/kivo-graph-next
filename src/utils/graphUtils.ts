@@ -3,13 +3,15 @@ interface RawNode {
     id: string;
     label: string;
     complexity?: string;
-    module?: string; 
-    isManual?: boolean; 
+    module?: string;
+    isManual?: boolean;
+    isFeature?: boolean;
   };
 }
 
 interface RawEdge {
   data: {
+    id?: string;
     source: string;
     target: string;
     type?: string;
@@ -59,7 +61,6 @@ export const processGraphData = (rawJson: GraphJson) => {
     } else {
       mod = classifyModule(n.data.id, n.data.label);
     }
-
     nodeModuleMap[n.data.id] = mod;
   });
 
@@ -73,8 +74,13 @@ export const processGraphData = (rawJson: GraphJson) => {
     groups.add(mod);
 
     let arch = "Model";
-    if (n.data.label.includes("Controller")) arch = "Controller";
-    else if (n.data.label.includes("Service")) arch = "Service";
+    if (n.data.isFeature) {
+      arch = "Feature";
+    } else if (n.data.label.includes("Controller")) {
+      arch = "Controller";
+    } else if (n.data.label.includes("Service")) {
+      arch = "Service";
+    }
 
     const degree = counts[n.data.id] || 0;
     const complexity = n.data.complexity || (degree > 5 ? "high" : "normal");
@@ -89,7 +95,9 @@ export const processGraphData = (rawJson: GraphJson) => {
         weight: degree,
         complexity: complexity,
         archetype: arch,
+        isFeature: n.data.isFeature,
       },
+      classes: n.data.isFeature ? "feature-node" : "",
     });
   });
 
@@ -99,6 +107,7 @@ export const processGraphData = (rawJson: GraphJson) => {
 
     edges.push({
       data: {
+        id: e.data.id,
         source: e.data.source,
         target: e.data.target,
         type: e.data.type || "default",
