@@ -8,7 +8,14 @@ import User from "@/models/User";
 const RegisterSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(
+      /[^a-zA-Z0-9]/,
+      "Password must contain at least one special character (@, $, !, etc.)",
+    ),
 });
 
 export async function registerUser(formData: FormData) {
@@ -19,10 +26,8 @@ export async function registerUser(formData: FormData) {
   });
 
   if (!validatedFields.success) {
-    return {
-      success: false,
-      message: "Invalid input. Check email format and password length.",
-    };
+    const errorMessage = validatedFields.error.issues[0].message;
+    return { success: false, message: errorMessage };
   }
 
   const { name, email, password } = validatedFields.data;

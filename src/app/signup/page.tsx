@@ -61,6 +61,10 @@ export default function SignupPage() {
               disabled={isLoading}
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
             />
+            {/* UPDATED: Specific requirements text */}
+            <p className="text-xs text-gray-400 mt-1 ml-1">
+              Must be 6+ chars, with 1 number & 1 special char.
+            </p>
           </div>
 
           <button
