@@ -6,7 +6,11 @@ import { getCompanyGraph } from "@/app/actions/graphActions";
 import { useGraphStore } from "@/store/useGraphStore";
 import { processGraphData } from "@/utils/graphUtils";
 
-export default function CompanySelector() {
+interface CompanySelectorProps {
+  className?: string;
+}
+
+export default function CompanySelector({ className }: CompanySelectorProps) {
   const [companies, setCompanies] = useState<any[]>([]);
   const { setCompanyContext, setGraphData, setIsLoading } = useGraphStore();
   const selectedId = useGraphStore((s) => s.selectedCompanyId);
@@ -48,11 +52,11 @@ export default function CompanySelector() {
   };
 
   return (
-    <div className="pointer-events-auto shadow-lg rounded-lg">
+    <div className={`pointer-events-auto shadow-sm rounded-lg ${className}`}>
       <select
         value={selectedId || ""}
         onChange={handleChange}
-        className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none cursor-pointer w-56 font-medium"
+        className="w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs lg:text-sm rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-orange-500 outline-none cursor-pointer font-medium h-10"
       >
         <option value="">Show All (No Company)</option>
         <optgroup label="Select Company">
