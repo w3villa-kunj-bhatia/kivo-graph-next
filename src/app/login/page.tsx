@@ -1,15 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setIsLoading(true);
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email");
     const password = formData.get("password");
@@ -21,8 +24,10 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      alert("Invalid credentials");
+      toast.error("Invalid credentials");
+      setIsLoading(false);
     } else {
+      toast.success("Login successful");
       router.push("/admin");
       router.refresh();
     }
@@ -40,7 +45,8 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
-              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-orange-500 outline-none"
+              disabled={isLoading}
+              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-orange-500 outline-none disabled:opacity-50"
             />
           </div>
           <div>
@@ -49,12 +55,20 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-orange-500 outline-none"
+              disabled={isLoading}
+              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-orange-500 outline-none disabled:opacity-50"
             />
           </div>
 
-          <button className="w-full bg-orange-600 hover:bg-orange-700 py-2 rounded font-bold transition">
-            Log In
+          <button
+            disabled={isLoading}
+            className={`w-full py-2 rounded font-bold transition ${
+              isLoading
+                ? "bg-orange-400 cursor-not-allowed"
+                : "bg-orange-600 hover:bg-orange-700"
+            }`}
+          >
+            {isLoading ? "Logging in..." : "Log In"}
           </button>
         </form>
 

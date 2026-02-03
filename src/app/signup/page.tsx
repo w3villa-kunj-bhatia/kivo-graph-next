@@ -1,19 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { registerUser } from "@/app/actions/authActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(formData: FormData) {
+    setIsLoading(true);
     const res = await registerUser(formData);
     if (res.success) {
-      alert("Account created! Please log in.");
+      toast.success("Account created! Please log in.");
       router.push("/login");
     } else {
-      alert(res.message);
+      toast.error(res.message || "Registration failed");
+      setIsLoading(false);
     }
   }
 
@@ -33,7 +38,8 @@ export default function SignupPage() {
               name="name"
               type="text"
               required
-              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none"
+              disabled={isLoading}
+              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
             />
           </div>
           <div>
@@ -42,7 +48,8 @@ export default function SignupPage() {
               name="email"
               type="email"
               required
-              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none"
+              disabled={isLoading}
+              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
             />
           </div>
           <div>
@@ -51,13 +58,20 @@ export default function SignupPage() {
               name="password"
               type="password"
               required
-              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none"
+              disabled={isLoading}
+              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
             />
           </div>
 
-
-          <button className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-bold transition">
-            Sign Up
+          <button
+            disabled={isLoading}
+            className={`w-full py-2 rounded font-bold transition ${
+              isLoading
+                ? "bg-blue-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {isLoading ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
 
