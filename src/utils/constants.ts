@@ -148,5 +148,5 @@ export const MODULE_FEATURES: Record<string, string[]> = {
     "Settings",
   ],
 
-  Payroll: [""],
+  Payroll: ["Payroll"],
 };
