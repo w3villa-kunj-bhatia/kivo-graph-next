@@ -85,7 +85,7 @@ export const MODULE_FEATURES: Record<string, string[]> = {
     "Department clearence and document upload",
   ],
 
-  Inventory: [""],
+  Inventory: ["Inventory"],
 
   AI: ["CV", "HRMS Bot", "Product Inventory"],
 
