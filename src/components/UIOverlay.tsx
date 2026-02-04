@@ -184,8 +184,12 @@ export default function UIOverlay() {
 
   const handleDownloadJSON = () => {
     if (!cy || cy.destroyed()) return;
-    const nodes = cy.nodes().map((n) => ({
-      data: n.data(),
+    const nodes = cy.nodes("[!isGroup]").map((n) => ({
+      data: {
+        ...n.data(),
+        label: n.data("fullLabel") || n.data("label"),
+        isManual: true,
+      },
       position: n.position(),
     }));
     const edges = cy.edges().map((e) => ({
