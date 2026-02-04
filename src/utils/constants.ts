@@ -89,7 +89,7 @@ export const MODULE_FEATURES: Record<string, string[]> = {
 
   AI: ["CV", "HRMS Bot", "Product Inventory"],
 
-  PM_Board: ["Project Listing"],
+  Projects: ["Project Listing"],
 
   ATS: [
     "Dashboard",

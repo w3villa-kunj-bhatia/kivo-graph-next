@@ -682,7 +682,7 @@ export default function AdminPage() {
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Acme Corp"
+                  placeholder="Company Name Here..."
                   className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
                 />
               </div>
