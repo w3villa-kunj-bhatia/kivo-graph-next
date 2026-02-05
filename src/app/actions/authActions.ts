@@ -16,6 +16,7 @@ const RegisterSchema = z.object({
       /[^a-zA-Z0-9]/,
       "Password must contain at least one special character (@, $, !, etc.)",
     ),
+  secretCode: z.string().min(1, "Company Access Code is required"),
 });
 
 export async function registerUser(formData: FormData) {
@@ -23,6 +24,7 @@ export async function registerUser(formData: FormData) {
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
+    secretCode: formData.get("secretCode"),
   });
 
   if (!validatedFields.success) {
@@ -30,7 +32,11 @@ export async function registerUser(formData: FormData) {
     return { success: false, message: errorMessage };
   }
 
-  const { name, email, password } = validatedFields.data;
+  const { name, email, password, secretCode } = validatedFields.data;
+
+  if (secretCode !== process.env.REGISTRATION_SECRET) {
+    return { success: false, message: "Invalid Company Access Code" };
+  }
 
   await dbConnect();
 
@@ -51,7 +57,6 @@ export async function registerUser(formData: FormData) {
 
     return { success: true };
   } catch (error) {
-    console.error("Signup error:", error);
     return {
       success: false,
       message: "Registration failed. Please try again later.",

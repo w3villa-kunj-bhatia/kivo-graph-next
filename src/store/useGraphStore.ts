@@ -230,11 +230,9 @@ export const useGraphStore = create<GraphState>()(
         }
       },
 
-      // FIX: Now removes element from graphData as well as Cytoscape
       removeElement: (id) => {
         const { cy, graphData } = get();
 
-        // 1. Remove from Visual Graph
         if (cy) {
           const el = cy.getElementById(id);
           if (el.nonempty()) {
@@ -242,7 +240,6 @@ export const useGraphStore = create<GraphState>()(
           }
         }
 
-        // 2. Remove from Data State (Critical Fix)
         if (graphData) {
           const newNodes = graphData.nodes.filter((n) => n.data.id !== id);
           const newEdges = graphData.edges.filter((e) => e.data.id !== id);

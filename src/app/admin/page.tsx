@@ -15,7 +15,7 @@ import {
 } from "@/app/actions/userActions";
 import { uploadGraph, getGraphLogs } from "@/app/actions/graphActions";
 import {
-  createModule,
+  saveModule,
   deleteModule,
   getModules,
 } from "@/app/actions/moduleActions";
@@ -90,7 +90,10 @@ export default function AdminPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSavingCompany, setIsSavingCompany] = useState(false);
 
+  const [moduleName, setModuleName] = useState("");
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [selectedModuleColor, setSelectedModuleColor] = useState("#3b82f6");
+
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -125,7 +128,7 @@ export default function AdminPage() {
   });
 
   const [moduleState, moduleAction, isModulePending] = useActionState(
-    createModule,
+    saveModule, 
     {
       success: false,
       message: "",
@@ -163,8 +166,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (moduleState?.success) {
       setToast({ message: moduleState.message, type: "success" });
-      const form = document.getElementById("module-form") as HTMLFormElement;
-      if (form) form.reset();
+      resetModuleForm(); 
       fetchData();
     } else if (moduleState?.message) {
       setToast({ message: moduleState.message, type: "error" });
@@ -258,6 +260,19 @@ export default function AdminPage() {
 
     setModuleFeatures(featureMap);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleEditModule(mod: any) {
+    setEditingModuleId(mod._id);
+    setModuleName(mod.name);
+    setSelectedModuleColor(mod.color);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetModuleForm() {
+    setEditingModuleId(null);
+    setModuleName("");
+    setSelectedModuleColor("#3b82f6");
   }
 
   function toggleModule(mod: string) {
@@ -887,14 +902,28 @@ export default function AdminPage() {
 
       {activeTab === "modules" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-full">
-          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-fit">
-            <div className="flex items-center gap-2 mb-6">
-              <Palette className="w-5 h-5 text-orange-500" />
-              <h2 className="text-xl font-semibold text-(--text-main)">
-                Create New Module
-              </h2>
+          <div
+            className={`bg-(--card-bg) p-6 rounded-xl border shadow-lg flex flex-col h-fit transition-colors ${editingModuleId ? "border-orange-500/50" : "border-(--border)"}`}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Palette className="w-5 h-5 text-orange-500" />
+                <h2 className="text-xl font-semibold text-(--text-main)">
+                  {editingModuleId ? "Edit Module" : "Create New Module"}
+                </h2>
+              </div>
+              {editingModuleId && (
+                <button
+                  onClick={resetModuleForm}
+                  className="text-xs flex items-center gap-1 bg-(--bg) hover:bg-(--border) px-2 py-1 rounded text-(--text-sub) transition"
+                >
+                  <X className="w-3 h-3" /> Cancel
+                </button>
+              )}
             </div>
+
             <form id="module-form" action={moduleAction} className="space-y-4">
+              <input type="hidden" name="id" value={editingModuleId || ""} />
               <div>
                 <label className="block text-sm mb-1 text-(--text-sub)">
                   Module Name
@@ -903,6 +932,8 @@ export default function AdminPage() {
                   type="text"
                   name="name"
                   required
+                  value={moduleName}
+                  onChange={(e) => setModuleName(e.target.value)}
                   placeholder="e.g. Finance"
                   className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
                 />
@@ -959,7 +990,13 @@ export default function AdminPage() {
                 disabled={isModulePending}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
               >
-                {isModulePending ? "Creating..." : "Create Module"}
+                {isModulePending
+                  ? editingModuleId
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingModuleId
+                    ? "Update Module"
+                    : "Create Module"}
               </button>
             </form>
           </div>
@@ -994,7 +1031,7 @@ export default function AdminPage() {
               {dynamicModules.map((mod) => (
                 <div
                   key={mod._id}
-                  className="p-3 rounded-lg border border-(--border) bg-(--bg) flex justify-between items-center"
+                  className={`p-3 rounded-lg border flex justify-between items-center transition-all ${editingModuleId === mod._id ? "bg-orange-500/10 border-orange-500/50" : "bg-(--bg) border-(--border) hover:border-gray-500"}`}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -1002,25 +1039,34 @@ export default function AdminPage() {
                       style={{ backgroundColor: mod.color }}
                     ></div>
                     <div>
-                      <p className="font-bold text-sm text-(--text-main)">
+                      <p
+                        className={`font-bold text-sm ${editingModuleId === mod._id ? "text-orange-500" : "text-(--text-main)"}`}
+                      >
                         {mod.name}
                       </p>
                       <p className="text-[10px] text-(--text-sub)">Custom</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => initiateDeleteModule(mod._id, mod.name)}
-                    className="text-(--text-sub) hover:text-red-500 p-2 transition"
-                  >
-                    <Trash className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditModule(mod)}
+                      className="text-(--text-sub) hover:text-blue-500 p-2 transition"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => initiateDeleteModule(mod._id, mod.name)}
+                      className="text-(--text-sub) hover:text-red-500 p-2 transition"
+                    >
+                      <Trash className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
       )}
-
       {activeTab === "users" && (
         <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">

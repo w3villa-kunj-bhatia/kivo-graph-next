@@ -61,10 +61,22 @@ export default function SignupPage() {
               disabled={isLoading}
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
             />
-            {/* UPDATED: Specific requirements text */}
             <p className="text-xs text-gray-400 mt-1 ml-1">
               Must be 6+ chars, with 1 number & 1 special char.
             </p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">
+              Company Access Code
+            </label>
+            <input
+              name="secretCode"
+              type="password"
+              required
+              disabled={isLoading}
+              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
+            />
           </div>
 
           <button

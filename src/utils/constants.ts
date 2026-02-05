@@ -149,4 +149,10 @@ export const MODULE_FEATURES: Record<string, string[]> = {
   ],
 
   Payroll: ["Payroll"],
+
+  Test: [
+    "Test0",
+    "Test1",
+    "Test2",
+    "Test3",],
 };

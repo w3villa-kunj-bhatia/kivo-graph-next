@@ -15,7 +15,7 @@ export async function getModules() {
   }));
 }
 
-export async function createModule(prevState: any, formData: FormData) {
+export async function saveModule(prevState: any, formData: FormData) {
   await dbConnect();
   const session = await auth();
 
@@ -23,6 +23,7 @@ export async function createModule(prevState: any, formData: FormData) {
     return { success: false, message: "Unauthorized: Admin access required." };
   }
 
+  const id = formData.get("id") as string;
   const name = formData.get("name") as string;
   const color = formData.get("color") as string;
 
@@ -31,20 +32,32 @@ export async function createModule(prevState: any, formData: FormData) {
   }
 
   try {
-    const existing = await Module.findOne({
+    const query: any = {
       name: { $regex: new RegExp(`^${name}$`, "i") },
-    });
+    };
+    if (id) {
+      query._id = { $ne: id };
+    }
+
+    const existing = await Module.findOne(query);
     if (existing) {
       return { success: false, message: "Module name already exists." };
     }
 
-    await Module.create({ name, color });
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true, message: "Module created successfully!" };
+    if (id) {
+      await Module.findByIdAndUpdate(id, { name, color });
+      revalidatePath("/admin");
+      revalidatePath("/");
+      return { success: true, message: "Module updated successfully!" };
+    } else {
+      await Module.create({ name, color });
+      revalidatePath("/admin");
+      revalidatePath("/");
+      return { success: true, message: "Module created successfully!" };
+    }
   } catch (error) {
-    console.error("Create module error:", error);
-    return { success: false, message: "Failed to create module." };
+    console.error("Save module error:", error);
+    return { success: false, message: "Failed to save module." };
   }
 }
 
