@@ -533,7 +533,7 @@ export default function AdminPage() {
       details: fileName,
       icon: FileUp,
       style:
-        "text-(--primary) bg-(--primary-subtle) border-(--primary) dark:border-(--primary)/50",
+        "w-10 h-10 rounded-xl bg-orange-900 dark:bg-orange-400 text-orange-50 flex items-center justify-center shrink border border-orange-50 dark:border-orange-50",
     };
   };
 
@@ -565,7 +565,9 @@ export default function AdminPage() {
           <div className="w-8 h-8 rounded-lg bg-(--primary) flex items-center justify-center text-white shadow-lg shadow-(--primary)/20">
             <Shield className="w-5 h-5" />
           </div>
-          <span className="font-bold text-lg tracking-tight">Kivo Admin</span>
+          <span className="font-bold text-lg tracking-tight">
+            Admin Dashboard
+          </span>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
@@ -613,7 +615,6 @@ export default function AdminPage() {
                 {isDarkMode ? "Dark Mode" : "Light Mode"}
               </span>
             </div>
-            {/* Hover Slide Effect */}
             <div className="absolute inset-0 bg-linear-to-r from-(--primary)/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
           </button>
 
@@ -655,9 +656,7 @@ export default function AdminPage() {
           </h2>
         </header>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Stats Cards with Improved Depth */}
           <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-            {/* Companies Card */}
             <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--primary) transition-all duration-300">
               <div className="absolute inset-0 bg-linear-to-br from-(--primary)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 flex items-center gap-5">
@@ -675,7 +674,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Users Card */}
             <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--accent-blue) transition-all duration-300">
               <div className="absolute inset-0 bg-linear-to-br from-(--accent-blue)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 flex items-center gap-5">
@@ -693,7 +691,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Modules Card */}
             <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--accent-purple) transition-all duration-300">
               <div className="absolute inset-0 bg-linear-to-br from-(--accent-purple)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 flex items-center gap-5">
