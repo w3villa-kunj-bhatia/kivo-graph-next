@@ -7,7 +7,6 @@ import {
   getCompanies,
   getStatistics,
 } from "@/app/actions/companyActions";
-
 import {
   getUsers,
   toggleUserRole,
@@ -19,9 +18,7 @@ import {
   deleteModule,
   getModules,
 } from "@/app/actions/moduleActions";
-
 import { savePolicy, getCompanyPolicies } from "@/app/actions/policyActions";
-
 import { COLORS, PRESET_COLORS, MODULE_FEATURES } from "@/utils/constants";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -35,84 +32,65 @@ import {
   Building2,
   Users,
   Layers,
-  TrendingUp,
   Pencil,
   Trash,
   X,
-  ArrowUpDown,
   Shield,
   ShieldAlert,
   Search,
   Sun,
   Moon,
-  History,
   FileJson,
   UploadCloud,
-  CheckCircle,
   PlusCircle,
   Trash2,
   Link as LinkIcon,
   FileUp,
-  Palette,
-  Activity,
   Check,
-  LayoutGrid,
   Filter,
-  Calendar,
+  ChevronRight,
+  Activity,
 } from "lucide-react";
 
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
-type Tab = "companies" | "users" | "logs" | "modules";
+type Tab = "companies" | "users" | "modules" | "logs";
 
 export default function AdminPage() {
   const { isDarkMode, toggleTheme } = useGraphStore();
   const [activeTab, setActiveTab] = useState<Tab>("companies");
-
   const [companies, setCompanies] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [dynamicModules, setDynamicModules] = useState<any[]>([]);
-
   const [stats, setStats] = useState({
     companyCount: 0,
     userCount: 0,
     moduleCount: 0,
   });
 
-  // Filters & Search States
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-
-  // User Filters
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<
     "all" | "admin" | "user"
   >("all");
-
-  // Module Filters
   const [moduleSearch, setModuleSearch] = useState("");
   const [moduleTypeFilter, setModuleTypeFilter] = useState<
     "all" | "default" | "custom"
   >("all");
-
-  // Log Filters
   const [logSearch, setLogSearch] = useState("");
   const [logDateFilter, setLogDateFilter] = useState("");
 
-  // Editing States
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formModules, setFormModules] = useState<Set<string>>(new Set());
   const [moduleFeatures, setModuleFeatures] = useState<
     Record<string, Set<string>>
   >({});
-
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSavingCompany, setIsSavingCompany] = useState(false);
-
   const [moduleName, setModuleName] = useState("");
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [selectedModuleColor, setSelectedModuleColor] = useState("#3b82f6");
-
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -173,9 +151,7 @@ export default function AdminPage() {
         type: "success",
       });
       setSelectedFileName(null);
-      if (uploadFormRef.current) {
-        uploadFormRef.current.reset();
-      }
+      if (uploadFormRef.current) uploadFormRef.current.reset();
       fetchData();
     } else if (uploadState?.message) {
       setToast({ message: uploadState.message, type: "error" });
@@ -255,9 +231,6 @@ export default function AdminPage() {
     return Array.from(new Set([...defaultNames, ...dynamicNames]));
   }, [dynamicModules]);
 
-  // --- Filtering Logic ---
-
-  // Users
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const matchesSearch =
@@ -268,7 +241,6 @@ export default function AdminPage() {
     });
   }, [users, userSearch, userRoleFilter]);
 
-  // Modules
   const combinedModules = useMemo(() => {
     const defaultMods = Object.entries(COLORS).map(([name, color]) => ({
       _id: `default-${name}`,
@@ -294,19 +266,16 @@ export default function AdminPage() {
     });
   }, [combinedModules, moduleSearch, moduleTypeFilter]);
 
-  // Logs
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       const matchesSearch =
         log.fileName.toLowerCase().includes(logSearch.toLowerCase()) ||
         log.uploaderEmail.toLowerCase().includes(logSearch.toLowerCase());
-
       let matchesDate = true;
       if (logDateFilter) {
         const logDate = new Date(log.uploadedAt).toISOString().split("T")[0];
         matchesDate = logDate === logDateFilter;
       }
-
       return matchesSearch && matchesDate;
     });
   }, [logs, logSearch, logDateFilter]);
@@ -315,7 +284,6 @@ export default function AdminPage() {
     () => filteredLogs.filter((log) => !log.fileName.startsWith("Manual")),
     [filteredLogs],
   );
-
   const activityLogs = useMemo(
     () => filteredLogs.filter((log) => log.fileName.startsWith("Manual")),
     [filteredLogs],
@@ -326,19 +294,16 @@ export default function AdminPage() {
     setEditingId(company._id);
     setFormName(company.name);
     setFormModules(new Set(company.allowedModules));
-
     const policies = await getCompanyPolicies(company._id);
     const featureMap: Record<string, Set<string>> = {};
-
     Object.keys(policies).forEach((mod) => {
       featureMap[mod] = new Set(policies[mod]);
     });
-
     setModuleFeatures(featureMap);
   }
 
   function handleEditModule(mod: any) {
-    if (mod.type === "default") return; // Cannot edit default modules via this flow
+    if (mod.type === "default") return;
     setEditingModuleId(mod._id);
     setModuleName(mod.name);
     setSelectedModuleColor(mod.color);
@@ -352,22 +317,16 @@ export default function AdminPage() {
 
   function toggleModule(mod: string) {
     const newSet = new Set(formModules);
-    if (newSet.has(mod)) {
-      newSet.delete(mod);
-    } else {
-      newSet.add(mod);
-    }
+    if (newSet.has(mod)) newSet.delete(mod);
+    else newSet.add(mod);
     setFormModules(newSet);
   }
 
   function toggleFeature(mod: string, feature: string) {
     setModuleFeatures((prev) => {
       const currentFeatures = new Set(prev[mod] || []);
-      if (currentFeatures.has(feature)) {
-        currentFeatures.delete(feature);
-      } else {
-        currentFeatures.add(feature);
-      }
+      if (currentFeatures.has(feature)) currentFeatures.delete(feature);
+      else currentFeatures.add(feature);
       return { ...prev, [mod]: currentFeatures };
     });
   }
@@ -396,14 +355,11 @@ export default function AdminPage() {
   async function handleCompanySubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSavingCompany(true);
-
     const formData = new FormData();
     if (editingId) formData.append("id", editingId);
     formData.append("name", formName);
-
     const moduleArray = Array.from(formModules);
     moduleArray.forEach((m) => formData.append("modules", m));
-
     formData.append(
       "modulesConfig",
       JSON.stringify(
@@ -413,32 +369,24 @@ export default function AdminPage() {
         })),
       ),
     );
-
     try {
       const result = await saveCompany(null, formData);
-
       if (result.success) {
-        if (result.message.includes("successfully")) {
-          let targetId = editingId;
-
-          if (!targetId) {
-            const refreshedCompanies = await getCompanies();
-            const newCompany = refreshedCompanies.find(
-              (c: any) => c.name === formName,
-            );
-            if (newCompany) targetId = newCompany._id;
-          }
-
-          if (targetId) {
-            await Promise.all(
-              Array.from(formModules).map((mod) => {
-                const features = Array.from(moduleFeatures[mod] || []);
-                return savePolicy(targetId!, mod, features);
-              }),
-            );
-          }
+        let targetId = editingId;
+        if (!targetId) {
+          const refreshedCompanies = await getCompanies();
+          const newCompany = refreshedCompanies.find(
+            (c: any) => c.name === formName,
+          );
+          if (newCompany) targetId = newCompany._id;
         }
-
+        if (targetId) {
+          await Promise.all(
+            Array.from(formModules).map((mod) =>
+              savePolicy(targetId!, mod, Array.from(moduleFeatures[mod] || [])),
+            ),
+          );
+        }
         showToast(result.message, "success");
         resetForm();
         fetchData();
@@ -446,7 +394,6 @@ export default function AdminPage() {
         showToast(result.message, "error");
       }
     } catch (error) {
-      console.error(error);
       showToast("An unexpected error occurred", "error");
     } finally {
       setIsSavingCompany(false);
@@ -488,7 +435,6 @@ export default function AdminPage() {
       });
       return;
     }
-
     setConfirmation({
       isOpen: true,
       title: "Change User Role?",
@@ -533,7 +479,6 @@ export default function AdminPage() {
       showToast("Cannot delete default modules", "error");
       return;
     }
-
     setConfirmation({
       isOpen: true,
       title: "Delete Module?",
@@ -552,44 +497,56 @@ export default function AdminPage() {
   }
 
   const getLogDisplayData = (fileName: string) => {
-    if (fileName.startsWith("Manual Add:")) {
+    if (fileName.startsWith("Manual Add:"))
       return {
         type: "Node Added",
         details: fileName.replace("Manual Add: ", ""),
         icon: PlusCircle,
         style:
-          "text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400",
+          "text-green-500 bg-green-50 border-green-800 dark:bg-green-700 dark:text-green-50",
       };
-    }
-    if (fileName.startsWith("Manual Delete:")) {
+    if (fileName.startsWith("Manual Delete:"))
       return {
         type: "Deleted",
         details: fileName.replace("Manual Delete: ", ""),
         icon: Trash2,
         style:
-          "text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400",
+          "text-red-500 bg-red-50 border-red-800 dark:bg-red-700 dark:text-red-50",
       };
-    }
-    if (fileName.startsWith("Manual Connect:")) {
+    if (fileName.startsWith("Manual Connect:"))
       return {
         type: "Connected",
         details: fileName.replace("Manual Connect: ", ""),
         icon: LinkIcon,
         style:
-          "text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400",
+          "text-blue-500 bg-blue-50 border-blue-800 dark:bg-blue-700 dark:text-blue-50",
       };
-    }
+    if (fileName.startsWith("Manual Disconnect:"))
+      return {
+        type: "Disconnected",
+        details: fileName.replace("Manual Disconnect: ", ""),
+        icon: LinkIcon,
+        style:
+          "text-red-500 bg-red-50 border-red-800 dark:bg-red-700 dark:text-red-50",
+      };
     return {
       type: "File Upload",
       details: fileName,
       icon: FileUp,
       style:
-        "text-orange-600 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400",
+        "text-orange-500 bg-orange-50 border-orange-800 dark:bg-orange-700 dark:text-orange-50",
     };
   };
 
+  const navItems = [
+    { id: "companies", label: "Companies", icon: Building2 },
+    { id: "users", label: "Users", icon: Users },
+    { id: "modules", label: "Modules", icon: Layers },
+    { id: "logs", label: "Activity Logs", icon: Activity },
+  ];
+
   return (
-    <div className="h-screen bg-(--bg) text-(--text-main) flex flex-col overflow-hidden transition-colors duration-300 font-sans">
+    <div className="h-screen bg-(--bg) text-(--text-main) flex overflow-hidden transition-colors duration-300 font-sans">
       <Toast
         message={toast.message}
         type={toast.type}
@@ -604,56 +561,79 @@ export default function AdminPage() {
         isDangerous={confirmation.isDangerous}
       />
 
-      {/* 1. Navbar */}
-      <header className="shrink-0 h-16 bg-(--bg)/90 backdrop-blur-md border-b border-(--border) px-6 flex items-center justify-between z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+      <aside className="w-64 bg-(--card-bg) border-r border-(--border) flex flex-col shrink-0 z-50">
+        <div className="h-16 flex items-center gap-3 px-6 border-b border-(--border)">
+          <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
             <Shield className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Kivo Admin</h1>
+          <span className="font-bold text-lg tracking-tight">Kivo Admin</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as Tab)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all group ${
+                activeTab === item.id
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  : "text-(--text-sub) hover:bg-(--bg) hover:text-(--text-main)"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <item.icon
+                  className={`w-5 h-5 ${activeTab === item.id ? "text-white" : "text-(--text-sub) group-hover:text-(--text-main)"}`}
+                />
+                <span className="text-sm font-semibold">{item.label}</span>
+              </div>
+              {activeTab === item.id && <ChevronRight className="w-4 h-4" />}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-(--border) space-y-2">
+          <Link
+            href="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-(--text-sub) hover:bg-(--bg) hover:text-(--text-main) transition-all"
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-sm font-semibold">Graph View</span>
+          </Link>
           <button
             onClick={toggleTheme}
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-(--card-bg) text-(--text-sub) hover:text-(--text-main) transition-colors border border-transparent hover:border-(--border)"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-(--text-sub) hover:bg-(--bg) hover:text-(--text-main) transition-all"
           >
             {isDarkMode ? (
               <Sun className="w-5 h-5" />
             ) : (
               <Moon className="w-5 h-5" />
             )}
+            <span className="text-sm font-semibold">
+              {isDarkMode ? "Light Mode" : "Dark Mode"}
+            </span>
           </button>
-
-          <Link
-            href="/"
-            className="flex items-center gap-2 bg-(--card-bg) hover:bg-(--border) text-(--text-main) px-4 py-2 rounded-lg text-sm font-medium border border-(--border) transition-all"
-          >
-            <Home className="w-4 h-4" />
-            <span className="hidden sm:inline">Graph View</span>
-          </Link>
-
-          <div className="relative" ref={profileRef}>
+          <div className="relative pt-2" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-9 h-9 rounded-full bg-linear-to-tr from-orange-400 to-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) hover:border-orange-500/50 transition-all"
             >
-              <User className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-full bg-linear-to-tr from-orange-400 to-red-500 text-white flex items-center justify-center shrink-0">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left overflow-hidden">
+                <p className="text-xs font-bold truncate">
+                  {session?.user?.name || "Admin"}
+                </p>
+                <p className="text-[10px] text-(--text-sub) truncate">
+                  {session?.user?.email}
+                </p>
+              </div>
             </button>
-
             {isProfileOpen && (
-              <div className="absolute right-0 top-full mt-3 w-64 bg-(--card-bg) border border-(--border) rounded-xl shadow-xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200">
-                <div className="px-3 py-2 border-b border-(--border) mb-1">
-                  <p className="text-sm font-bold text-(--text-main) truncate">
-                    {session?.user?.name || "User"}
-                  </p>
-                  <p className="text-xs text-(--text-sub) truncate">
-                    {session?.user?.email}
-                  </p>
-                </div>
+              <div className="absolute bottom-full left-0 mb-2 w-full bg-(--card-bg) border border-(--border) rounded-xl shadow-xl p-1 z-50 animate-in slide-in-from-bottom-2 duration-200">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition w-full text-left font-medium"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition w-full text-left font-bold"
                 >
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
@@ -661,760 +641,551 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* 2. Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
-        {/* Stats Row */}
-        <div className="shrink-0 grid grid-cols-3 gap-6">
-          <div className="bg-(--card-bg) p-4 rounded-xl border border-(--border) shadow-sm flex items-center gap-4 hover:border-blue-500/30 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
-                Companies
-              </p>
-              <p className="text-2xl font-bold text-(--text-main)">
-                {stats.companyCount}
-              </p>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-16 border-b border-(--border) bg-(--card-bg) flex items-center justify-between px-8 shrink-0">
+          <h2 className="text-xl font-bold capitalize text-(--text-main)">
+            {activeTab}
+          </h2>
+          <div className="text-right hidden sm:block">
+            <p className="text-[10px] font-bold text-(--text-sub) uppercase tracking-wider">
+              Status
+            </p>
+            <div className="flex items-center gap-1.5 justify-end">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-bold">System Online</span>
             </div>
           </div>
-          <div className="bg-(--card-bg) p-4 rounded-xl border border-(--border) shadow-sm flex items-center gap-4 hover:border-purple-500/30 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600">
-              <Users className="w-5 h-5" />
+        </header>
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
+            <div className="bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm flex items-center gap-5 hover:border-orange-500/30 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                  Companies
+                </p>
+                <p className="text-3xl font-black text-(--text-main)">
+                  {stats.companyCount}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
-                Users
-              </p>
-              <p className="text-2xl font-bold text-(--text-main)">
-                {stats.userCount}
-              </p>
+            <div className="bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm flex items-center gap-5 hover:border-blue-500/30 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                  Users
+                </p>
+                <p className="text-3xl font-black text-(--text-main)">
+                  {stats.userCount}
+                </p>
+              </div>
+            </div>
+            <div className="bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm flex items-center gap-5 hover:border-purple-500/30 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                <Layers className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                  Modules
+                </p>
+                <p className="text-3xl font-black text-(--text-main)">
+                  {stats.moduleCount}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="bg-(--card-bg) p-4 rounded-xl border border-(--border) shadow-sm flex items-center gap-4 hover:border-emerald-500/30 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
-                Modules
-              </p>
-              <p className="text-2xl font-bold text-(--text-main)">
-                {stats.moduleCount}
-              </p>
-            </div>
-          </div>
-        </div>
 
-        {/* Tab Selection */}
-        <div className="shrink-0 border-b border-(--border) flex gap-6">
-          {["companies", "users", "modules", "logs"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as Tab)}
-              className={`
-                pb-3 text-sm font-bold capitalize transition-all border-b-2 
-                ${
-                  activeTab === tab
-                    ? "border-orange-500 text-orange-600"
-                    : "border-transparent text-(--text-sub) hover:text-(--text-main) hover:border-(--border)"
-                }
-              `}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex-1 overflow-hidden relative rounded-xl border border-(--border) bg-(--card-bg) shadow-lg">
-          {activeTab === "companies" && (
-            <div className="h-full flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-(--border)">
-              <div
-                className={`xl:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${
-                  editingId
-                    ? "bg-orange-50/50 dark:bg-orange-950/30 border-r-2 border-orange-500/20"
-                    : "bg-(--card-bg) border-r border-(--border)"
-                }`}
-              >
-                <div
-                  className={`shrink-0 p-6 border-b flex justify-between items-center transition-colors ${
-                    editingId
-                      ? "bg-orange-100/50 dark:bg-orange-900/40 border-orange-200 dark:border-orange-800"
-                      : "bg-(--card-bg) border-(--border)"
-                  }`}
-                >
-                  <h2 className="font-bold text-lg text-(--text-main)">
-                    {editingId ? "Edit Company" : "New Company"}
-                  </h2>
-                  {editingId && (
-                    <button
-                      onClick={resetForm}
-                      className="text-xs flex items-center gap-1 bg-(--bg) px-2 py-1 rounded-full text-(--text-sub) hover:text-(--text-main)"
-                    >
-                      <X className="w-3 h-3" /> Cancel
-                    </button>
-                  )}
-                </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
-                  <form
-                    id="company-form"
-                    onSubmit={handleCompanySubmit}
-                    className="space-y-5"
+          <div className="flex-1 px-8 pb-8 min-h-0">
+            <div className="h-full bg-(--card-bg) rounded-2xl border border-(--border) shadow-xl overflow-hidden flex flex-col">
+              {activeTab === "companies" && (
+                <div className="h-full flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-(--border)">
+                  <div
+                    className={`xl:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${editingId ? "bg-orange-50/50 dark:bg-orange-950/20" : "bg-(--card-bg)"}`}
                   >
-                    <div>
-                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-1">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formName}
-                        onChange={(e) => setFormName(e.target.value)}
-                        placeholder="Company Name..."
-                        className="w-full px-3 py-2 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 outline-none text-(--text-main)"
-                      />
+                    <div className="p-6 border-b border-(--border) flex justify-between items-center shrink-0">
+                      <h3 className="font-bold text-lg text-(--text-main)">
+                        {editingId ? "Edit Company" : "New Company"}
+                      </h3>
+                      {editingId && (
+                        <button
+                          onClick={resetForm}
+                          className="text-xs font-bold text-orange-600 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
-                        Modules
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {allAvailableModules.map((mod) => (
-                          <div
-                            key={mod}
-                            onClick={() => toggleModule(mod)}
-                            className={`
-                              cursor-pointer rounded-lg border px-3 py-2 flex items-center gap-2 transition-all select-none
-                              ${
-                                formModules.has(mod)
-                                  ? "bg-orange-50 dark:bg-orange-900/10 border-orange-500"
-                                  : "bg-(--bg) border-(--border) hover:border-orange-300"
-                              }
-                            `}
-                          >
-                            <div
-                              className={`w-4 h-4 rounded border flex items-center justify-center ${formModules.has(mod) ? "bg-orange-500 border-orange-500" : "border-slate-400"}`}
-                            >
-                              {formModules.has(mod) && (
-                                <Check className="w-3 h-3 text-white" />
-                              )}
-                            </div>
-                            <span className="text-sm font-medium">{mod}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {Array.from(formModules).some(
-                      (m) => MODULE_FEATURES[m],
-                    ) && (
-                      <div className="pt-2 border-t border-(--border)">
-                        <label className="block text-xs font-bold text-(--text-sub) uppercase mb-3">
-                          Features
-                        </label>
-                        <div className="space-y-3">
-                          {Array.from(formModules).map((mod) => {
-                            const features = MODULE_FEATURES[mod];
-                            if (!features) return null;
-                            const selectedCount =
-                              moduleFeatures[mod]?.size || 0;
-                            return (
+                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                      <form
+                        id="company-form"
+                        onSubmit={handleCompanySubmit}
+                        className="space-y-6"
+                      >
+                        <div>
+                          <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
+                            Company Name
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formName}
+                            onChange={(e) => setFormName(e.target.value)}
+                            placeholder="e.g. Acme Corp"
+                            className="w-full px-4 py-2.5 rounded-xl bg-(--bg) border border-(--border) focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none text-(--text-main) placeholder:text-(--text-sub)"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-(--text-sub) uppercase mb-3">
+                            Allowed Modules
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {allAvailableModules.map((mod) => (
                               <div
                                 key={mod}
-                                className="bg-(--bg) border border-(--border) rounded-lg overflow-hidden"
+                                onClick={() => toggleModule(mod)}
+                                className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-all select-none ${formModules.has(mod) ? "bg-orange-500 text-white border-orange-500" : "bg-(--bg) border-(--border) hover:border-orange-300"}`}
                               >
-                                <div className="px-3 py-2 border-b border-(--border) flex justify-between items-center bg-(--card-bg)">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-xs uppercase text-(--text-main)">
-                                      {mod}
-                                    </h4>
-                                    <span className="text-[10px] font-mono text-(--text-sub) bg-(--border) px-1.5 rounded">
-                                      {selectedCount}/{features.length}
-                                    </span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAllFeatures(mod)}
-                                    className="text-[10px] font-bold text-orange-600 hover:underline"
-                                  >
-                                    Toggle All
-                                  </button>
-                                </div>
-                                <div className="p-2 grid grid-cols-1 gap-1 max-h-40 overflow-y-auto custom-scrollbar">
-                                  {features.map((feature) => (
-                                    <label
-                                      key={feature}
-                                      className="flex items-center gap-2 p-1.5 rounded hover:bg-(--card-bg) cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={
-                                          moduleFeatures[mod]?.has(feature) ||
-                                          false
-                                        }
-                                        onChange={() =>
-                                          toggleFeature(mod, feature)
-                                        }
-                                        className="rounded border-slate-400 text-orange-500 focus:ring-orange-500"
-                                      />
-                                      <span className="text-xs text-(--text-main)">
-                                        {feature}
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </form>
-                </div>
-                <div className="shrink-0 p-4 border-t border-(--border) bg-(--card-bg)">
-                  <button
-                    form="company-form"
-                    disabled={isSavingCompany}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 shadow-md"
-                  >
-                    {isSavingCompany
-                      ? "Processing..."
-                      : editingId
-                        ? "Update Company"
-                        : "Create Company"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="xl:w-2/3 flex flex-col h-full">
-                <div className="shrink-0 p-3 border-b border-(--border) flex items-center justify-between bg-(--card-bg)">
-                  <div className="flex items-center gap-2 px-2">
-                    <span className="text-xs font-bold text-(--text-sub) uppercase">
-                      Directory
-                    </span>
-                    <span className="text-xs bg-(--border) px-1.5 rounded text-(--text-main)">
-                      {sortedCompanies.length}
-                    </span>
-                  </div>
-                  <select
-                    value={sortOption}
-                    onChange={(e) =>
-                      setSortOption(e.target.value as SortOption)
-                    }
-                    className="text-xs bg-(--bg) border border-(--border) rounded px-2 py-1 outline-none"
-                  >
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                    <option value="modules-most">Modules (Most)</option>
-                    <option value="modules-least">Modules (Least)</option>
-                  </select>
-                </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-                  {sortedCompanies.map((company) => (
-                    <div
-                      key={company._id}
-                      className={`
-                        p-4 rounded-xl border flex items-center justify-between group transition-all
-                        ${
-                          editingId === company._id
-                            ? "bg-orange-50 dark:bg-orange-900/10 border-orange-500"
-                            : "bg-(--bg) border-(--border) hover:border-orange-300 dark:hover:border-orange-700"
-                        }
-                      `}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-slate-500 font-bold text-lg">
-                          {company.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <h3
-                            className={`font-bold text-sm ${editingId === company._id ? "text-orange-600" : "text-(--text-main)"}`}
-                          >
-                            {company.name}
-                          </h3>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {company.allowedModules
-                              .slice(0, 4)
-                              .map((m: string) => (
-                                <span
-                                  key={m}
-                                  className="text-[10px] bg-(--card-bg) border border-(--border) px-1.5 py-0.5 rounded text-(--text-sub)"
+                                <div
+                                  className={`w-4 h-4 rounded-md border flex items-center justify-center ${formModules.has(mod) ? "bg-white text-orange-500 border-white" : "bg-white/50 border-slate-300"}`}
                                 >
-                                  {m}
+                                  {formModules.has(mod) && (
+                                    <Check className="w-3 h-3" />
+                                  )}
+                                </div>
+                                <span className="text-xs font-bold truncate">
+                                  {mod}
                                 </span>
-                              ))}
-                            {company.allowedModules.length > 4 && (
-                              <span className="text-[10px] text-(--text-sub) px-1">
-                                +{company.allowedModules.length - 4}
-                              </span>
-                            )}
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleEdit(company)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => initiateDeleteCompany(company._id)}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
+                        {Array.from(formModules).some(
+                          (m) => MODULE_FEATURES[m],
+                        ) && (
+                          <div className="pt-4 border-t border-(--border)">
+                            <label className="block text-xs font-bold text-(--text-sub) uppercase mb-4">
+                              Granular Permissions
+                            </label>
+                            <div className="space-y-4">
+                              {Array.from(formModules).map((mod) => {
+                                const features = MODULE_FEATURES[mod];
+                                if (!features) return null;
+                                return (
+                                  <div
+                                    key={mod}
+                                    className="bg-(--bg) border border-(--border) rounded-xl overflow-hidden"
+                                  >
+                                    <div className="px-4 py-2 bg-(--card-bg) border-b border-(--border) flex justify-between items-center">
+                                      <span className="text-[10px] font-black uppercase text-orange-600">
+                                        {mod}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleAllFeatures(mod)}
+                                        className="text-[10px] font-bold text-(--text-sub) hover:text-orange-600"
+                                      >
+                                        Toggle All
+                                      </button>
+                                    </div>
+                                    <div className="p-3 grid grid-cols-1 gap-1">
+                                      {features.map((feature) => (
+                                        <label
+                                          key={feature}
+                                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-(--card-bg) cursor-pointer group"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={
+                                              moduleFeatures[mod]?.has(
+                                                feature,
+                                              ) || false
+                                            }
+                                            onChange={() =>
+                                              toggleFeature(mod, feature)
+                                            }
+                                            className="rounded-md border-slate-300 text-orange-500 focus:ring-orange-500 w-4 h-4"
+                                          />
+                                          <span className="text-xs text-(--text-main) font-medium group-hover:translate-x-0.5 transition-transform">
+                                            {feature}
+                                          </span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </form>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "modules" && (
-            <div className="h-full flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-(--border)">
-              <div
-                className={`md:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${
-                  editingModuleId
-                    ? "bg-pink-50/50 dark:bg-pink-950/30 border-r-2 border-pink-500/20"
-                    : "bg-(--card-bg) border-r border-(--border)"
-                }`}
-              >
-                <div
-                  className={`shrink-0 p-6 border-b flex justify-between items-center transition-colors ${
-                    editingModuleId
-                      ? "bg-pink-100/50 dark:bg-pink-900/40 border-pink-200 dark:border-pink-800"
-                      : "bg-(--card-bg) border-(--border)"
-                  }`}
-                >
-                  <h2 className="font-bold text-lg text-(--text-main)">
-                    {editingModuleId ? "Edit Module" : "New Module"}
-                  </h2>
-                  {editingModuleId && (
-                    <button
-                      onClick={resetModuleForm}
-                      className="text-xs flex items-center gap-1 bg-(--bg) px-2 py-1 rounded-full text-(--text-sub)"
-                    >
-                      <X className="w-3 h-3" /> Cancel
-                    </button>
-                  )}
-                </div>
-                <div className="p-5 flex-1 overflow-y-auto custom-scrollbar">
-                  <form
-                    id="module-form"
-                    action={moduleAction}
-                    className="space-y-5"
-                  >
-                    <input
-                      type="hidden"
-                      name="id"
-                      value={editingModuleId || ""}
-                    />
-                    <div>
-                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-1">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        required
-                        value={moduleName}
-                        onChange={(e) => setModuleName(e.target.value)}
-                        placeholder="e.g. Finance"
-                        className="w-full px-3 py-2 rounded-lg bg-(--bg) border border-(--border) focus:border-pink-500 outline-none text-(--text-main)"
-                      />
+                    <div className="p-6 border-t border-(--border) bg-(--card-bg) shrink-0">
+                      <button
+                        form="company-form"
+                        disabled={isSavingCompany}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+                      >
+                        {isSavingCompany
+                          ? "Saving Changes..."
+                          : editingId
+                            ? "Update Company Info"
+                            : "Register New Company"}
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
-                        Color
-                      </label>
-                      <input
-                        type="hidden"
-                        name="color"
-                        value={selectedModuleColor}
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        {PRESET_COLORS.map((color) => (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() => setSelectedModuleColor(color)}
-                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${selectedModuleColor === color ? "border-white ring-2 ring-pink-500 scale-110" : "border-transparent"}`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                        <div className="relative w-8 h-8 rounded-full border-2 border-dashed border-(--text-sub) flex items-center justify-center">
-                          <input
-                            type="color"
-                            value={selectedModuleColor}
-                            onChange={(e) =>
-                              setSelectedModuleColor(e.target.value)
-                            }
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          />
-                          <PlusCircle className="w-4 h-4 text-(--text-sub)" />
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-(--text-sub)">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: selectedModuleColor }}
-                        />
-                        {selectedModuleColor}
-                      </div>
-                    </div>
-                  </form>
-                </div>
-                <div className="shrink-0 p-4 border-t border-(--border) bg-(--card-bg)">
-                  <button
-                    form="module-form"
-                    disabled={isModulePending}
-                    className="w-full bg-pink-600 hover:bg-pink-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50"
-                  >
-                    {isModulePending ? "Saving..." : "Save Module"}
-                  </button>
-                </div>
-              </div>
-              <div className="md:w-2/3 flex flex-col h-full">
-                <div className="shrink-0 p-3 border-b border-(--border) bg-(--card-bg) flex items-center justify-between gap-4">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-(--text-sub)" />
-                    <input
-                      type="text"
-                      placeholder="Search modules..."
-                      value={moduleSearch}
-                      onChange={(e) => setModuleSearch(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 w-full bg-(--bg) border border-(--border) rounded-lg text-xs outline-none focus:border-pink-500"
-                    />
                   </div>
-                  <select
-                    value={moduleTypeFilter}
-                    onChange={(e) => setModuleTypeFilter(e.target.value as any)}
-                    className="text-xs bg-(--bg) border border-(--border) rounded px-2 py-1.5 outline-none"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="default">System Default</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-                  {filteredModules.map((mod) => (
-                    <div
-                      key={mod._id}
-                      className={`
-                        p-3 rounded-xl border flex items-center justify-between transition-all
-                        ${
-                          editingModuleId === mod._id
-                            ? "bg-pink-50 dark:bg-pink-900/10 border-pink-500"
-                            : "bg-(--card-bg) border-(--border) hover:border-pink-300"
+                  <div className="xl:w-2/3 flex flex-col h-full bg-(--bg)/20">
+                    <div className="p-4 border-b border-(--border) bg-(--card-bg)/50 backdrop-blur-md flex items-center justify-between shrink-0">
+                      <span className="text-xs font-bold text-(--text-sub) uppercase px-4">
+                        Registry ({sortedCompanies.length})
+                      </span>
+                      <select
+                        value={sortOption}
+                        onChange={(e) =>
+                          setSortOption(e.target.value as SortOption)
                         }
-                        ${mod.type === "default" ? "opacity-80 bg-(--bg)/50" : ""}
-                      `}
-                    >
-                      <div className="flex items-center gap-3">
+                        className="text-xs font-bold bg-(--card-bg) border border-(--border) rounded-lg px-3 py-1.5 outline-none focus:border-orange-500"
+                      >
+                        <option value="name-asc">Name: A to Z</option>
+                        <option value="name-desc">Name: Z to A</option>
+                        <option value="modules-most">
+                          Modules: Most First
+                        </option>
+                        <option value="modules-least">
+                          Modules: Least First
+                        </option>
+                      </select>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                      {sortedCompanies.map((company) => (
                         <div
-                          className="w-8 h-8 rounded-full border shadow-sm"
-                          style={{ backgroundColor: mod.color }}
-                        />
-                        <div>
-                          <p className="font-bold text-sm text-(--text-main)">
-                            {mod.name}
-                          </p>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded ${mod.type === "default" ? "bg-(--border) text-(--text-sub)" : "bg-blue-50 dark:bg-blue-900/20 text-blue-600"}`}
-                          >
-                            {mod.type === "default" ? "Default" : "Custom"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {mod.type === "custom" && (
-                          <>
+                          key={company._id}
+                          className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${editingId === company._id ? "bg-orange-500/5 border-orange-500 ring-1 ring-orange-500" : "bg-(--card-bg) border-(--border) hover:border-orange-500/30 hover:shadow-md"}`}
+                        >
+                          <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 rounded-xl bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-(--text-sub) font-black text-xl border border-(--border) transition-colors">
+                              {company.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h4
+                                className={`font-bold text-base ${editingId === company._id ? "text-orange-600" : "text-(--text-main)"}`}
+                              >
+                                {company.name}
+                              </h4>
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {company.allowedModules.map((m: string) => (
+                                  <span
+                                    key={m}
+                                    className="text-[10px] font-bold bg-(--bg) border border-(--border) px-2 py-0.5 rounded-full text-(--text-sub)"
+                                  >
+                                    {m}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={() => handleEditModule(mod)}
-                              className="p-2 text-(--text-sub) hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                              onClick={() => handleEdit(company)}
+                              className="p-2.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-xl transition-colors border border-transparent hover:border-blue-200"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() =>
-                                initiateDeleteModule(mod._id, mod.name)
-                              }
-                              className="p-2 text-(--text-sub) hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                              onClick={() => initiateDeleteCompany(company._id)}
+                              className="p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900 rounded-xl transition-colors border border-transparent hover:border-red-200"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
-                          </>
-                        )}
-                        {mod.type === "default" && (
-                          <Shield className="w-4 h-4 text-(--text-sub) mr-2" />
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {filteredModules.length === 0 && (
-                    <p className="text-center text-xs text-(--text-sub) py-8">
-                      No modules match filters
-                    </p>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {activeTab === "users" && (
-            <div className="h-full flex flex-col">
-              <div className="shrink-0 p-4 border-b border-(--border) flex justify-between items-center bg-(--card-bg) gap-4">
-                <h2 className="font-bold text-lg text-(--text-main)">Users</h2>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-(--text-sub)" />
-                    <input
-                      type="text"
-                      placeholder="Search users..."
-                      value={userSearch}
-                      onChange={(e) => setUserSearch(e.target.value)}
-                      className="pl-9 pr-3 py-1.5 bg-(--bg) border border-(--border) rounded-lg text-sm outline-none focus:border-orange-500 w-48 lg:w-64"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Filter className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-(--text-sub) hover:scale-112 transition-transform" />
-                    <select
-                      value={userRoleFilter}
-                      onChange={(e) => setUserRoleFilter(e.target.value as any)}
-                      className="pl-8 pr-3 py-1.5 bg-(--bg) border border-(--border) rounded-lg text-sm outline-none focus:border-orange-500 appearance-none cursor-pointer hover:scale-112 transition-transform"
-                    >
-                      <option value="all">All Roles</option>
-                      <option value="admin">Admins Only</option>
-                      <option value="user">Users Only</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div className="flex-1 overflow-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-(--bg) sticky top-0 z-10 border-b border-(--border)">
-                    <tr>
-                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase">
-                        Profile
-                      </th>
-                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase">
-                        Role
-                      </th>
-                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase">
-                        Joined
-                      </th>
-                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase text-right">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-(--border)">
-                    {filteredUsers.map((user) => (
-                      <tr
-                        key={user._id}
-                        className="group hover:bg-(--bg)/50 transition-colors"
+              {activeTab === "modules" && (
+                <div className="h-full flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-(--border)">
+                  <div
+                    className={`md:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${editingModuleId ? "bg-purple-50/50 dark:bg-purple-950/20" : "bg-(--card-bg)"}`}
+                  >
+                    <div className="p-6 border-b border-(--border) flex justify-between items-center shrink-0">
+                      <h3 className="font-bold text-lg text-(--text-main)">
+                        {editingModuleId ? "Edit Module" : "New Custom Module"}
+                      </h3>
+                      {editingModuleId && (
+                        <button
+                          onClick={resetModuleForm}
+                          className="text-xs font-bold text-purple-600 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                      <form
+                        id="module-form"
+                        action={moduleAction}
+                        className="space-y-6"
                       >
-                        <td className="py-3 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                              {user.name.charAt(0).toUpperCase()}
+                        <input
+                          type="hidden"
+                          name="id"
+                          value={editingModuleId || ""}
+                        />
+                        <div>
+                          <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
+                            Module Name
+                          </label>
+                          <input
+                            type="text"
+                            name="name"
+                            required
+                            value={moduleName}
+                            onChange={(e) => setModuleName(e.target.value)}
+                            placeholder="e.g. Finance"
+                            className="w-full px-4 py-2.5 rounded-xl bg-(--bg) border border-(--border) focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none text-(--text-main) placeholder:text-(--text-sub)"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-(--text-sub) uppercase mb-4">
+                            Branding Color
+                          </label>
+                          <input
+                            type="hidden"
+                            name="color"
+                            value={selectedModuleColor}
+                          />
+                          <div className="flex flex-wrap gap-3">
+                            {PRESET_COLORS.map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => setSelectedModuleColor(color)}
+                                className={`w-10 h-10 rounded-full border-4 transition-all hover:scale-110 ${selectedModuleColor === color ? "border-white ring-4 ring-purple-500 scale-110 shadow-lg" : "border-transparent"}`}
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                            <div className="relative w-10 h-10 rounded-full border-2 border-dashed border-(--text-sub) flex items-center justify-center hover:bg-(--bg) transition-colors">
+                              <input
+                                type="color"
+                                value={selectedModuleColor}
+                                onChange={(e) =>
+                                  setSelectedModuleColor(e.target.value)
+                                }
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                              <PlusCircle className="w-5 h-5 text-(--text-sub)" />
                             </div>
+                          </div>
+                          <div className="mt-4 p-3 bg-(--bg) rounded-xl flex items-center gap-3">
+                            <div
+                              className="w-6 h-6 rounded-full border border-(--border) shadow-sm"
+                              style={{ backgroundColor: selectedModuleColor }}
+                            />
+                            <span className="text-xs font-mono font-bold text-(--text-main)">
+                              {selectedModuleColor.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                    <div className="p-6 border-t border-(--border) bg-(--card-bg) shrink-0">
+                      <button
+                        form="module-form"
+                        disabled={isModulePending}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-purple-500/20"
+                      >
+                        {isModulePending
+                          ? "Processing..."
+                          : "Save Module Configuration"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="md:w-2/3 flex flex-col h-full bg-(--bg)/20">
+                    <div className="p-4 border-b border-(--border) bg-(--card-bg)/50 backdrop-blur-md flex items-center gap-4 shrink-0">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-(--text-sub)" />
+                        <input
+                          type="text"
+                          placeholder="Search module library..."
+                          value={moduleSearch}
+                          onChange={(e) => setModuleSearch(e.target.value)}
+                          className="pl-10 pr-4 py-2 w-full bg-(--bg) border border-(--border) rounded-xl text-sm outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <select
+                        value={moduleTypeFilter}
+                        onChange={(e) =>
+                          setModuleTypeFilter(e.target.value as any)
+                        }
+                        className="text-xs font-bold bg-(--bg) border border-(--border) rounded-xl px-4 py-2 outline-none"
+                      >
+                        <option value="all">All Modules</option>
+                        <option value="default">System Core</option>
+                        <option value="custom">Custom Added</option>
+                      </select>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 custom-scrollbar">
+                      {filteredModules.map((mod) => (
+                        <div
+                          key={mod._id}
+                          className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${editingModuleId === mod._id ? "bg-purple-500/5 border-purple-500 ring-1 ring-purple-500" : "bg-(--card-bg) border-(--border) hover:shadow-md"} ${mod.type === "default" ? "opacity-75" : ""}`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className="w-10 h-10 rounded-xl shadow-inner border border-white/20"
+                              style={{ backgroundColor: mod.color }}
+                            />
                             <div>
                               <p className="font-bold text-sm text-(--text-main)">
-                                {user.name}
+                                {mod.name}
                               </p>
-                              <p className="text-xs text-(--text-sub)">
-                                {user.email}
-                              </p>
+                              <span
+                                className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${mod.type === "default" ? "bg-(--bg) text-(--text-sub)" : "bg-purple-50 dark:bg-purple-500/10 text-purple-500 dark:text-purple-400"}`}
+                              >
+                                {mod.type === "default" ? "System" : "Custom"}
+                              </span>
                             </div>
                           </div>
-                        </td>
-                        <td className="py-3 px-6">
-                          {user.role === "admin" ? (
-                            <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold">
-                              <ShieldAlert className="w-3 h-3" /> Admin
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-bold">
-                              <User className="w-3 h-3" /> User
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-6 text-xs text-(--text-sub)">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2 ">
-                            <button
-                              onClick={() =>
-                                initiateToggleRole(user._id, user.role)
-                              }
-                              className={`
-                                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border hover:scale-112
-                                ${
-                                  user.role === "admin"
-                                    ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-900/10 dark:text-orange-400 dark:hover:bg-orange-900/20"
-                                    : "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-400 dark:hover:bg-blue-900/20 hover:scale-105 transition-transform"
-                                }
-                              `}
-                            >
-                              <Shield className="w-3.5 h-3.5" />
-                              {user.role === "admin" ? "Demote" : "Promote"}
-                            </button>
-                            <button
-                              onClick={() => initiateDeleteUser(user._id)}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              title="Delete User"
-                            >
-                              <Trash className="w-4 h-4 hover:scale-112 transition-transform" />
-                            </button>
+                          <div className="flex gap-1">
+                            {mod.type === "custom" ? (
+                              <>
+                                <button
+                                  onClick={() => handleEditModule(mod)}
+                                  className="p-2 text-(--text-sub) hover:text-purple-600 rounded-lg"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    initiateDeleteModule(mod._id, mod.name)
+                                  }
+                                  className="p-2 text-(--text-sub) hover:text-red-500 rounded-lg"
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <Shield className="w-4 h-4 text-(--text-sub) opacity-30" />
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredUsers.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="text-center py-8 text-xs text-(--text-sub)"
-                        >
-                          No users found matching filters
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "logs" && (
-            <div className="h-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-(--border)">
-              {/* Left Column: Upload Form */}
-              <div className="lg:w-1/3 flex flex-col h-full p-6 bg-(--bg)/30">
-                <div className="shrink-0 mb-6">
-                  <h2 className="text-lg font-bold text-(--text-main) flex items-center gap-2">
-                    <UploadCloud className="w-5 h-5" /> Update Graph
-                  </h2>
-                  <p className="text-xs text-(--text-sub) mt-1">
-                    Upload a standardized JSON file.
-                  </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              )}
 
-                <form
-                  ref={uploadFormRef}
-                  action={uploadAction}
-                  className="flex-1 flex flex-col gap-4"
-                >
-                  <input
-                    type="hidden"
-                    name="uploaderEmail"
-                    value={session?.user?.email || ""}
-                  />
-                  <div className="flex-1 border-2 border-dashed border-(--border) rounded-xl flex flex-col items-center justify-center relative hover:border-orange-500/50 hover:bg-(--card-bg) transition-all">
-                    <FileJson
-                      className={`w-10 h-10 mb-3 ${selectedFileName ? "text-orange-500" : "text-(--text-sub)"}`}
-                    />
-                    <label className="absolute inset-0 cursor-pointer">
+              {activeTab === "users" && (
+                <div className="h-full flex flex-col">
+                  <div className="p-6 border-b border-(--border) bg-(--card-bg)/50 backdrop-blur-md flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+                    <div className="relative w-full sm:w-80">
+                      <Search className="w-4 h-4 absolute left-3.5 top-3 text-(--text-sub)" />
                       <input
-                        type="file"
-                        name="file"
-                        accept=".json"
-                        required
-                        onChange={(e) =>
-                          setSelectedFileName(e.target.files?.[0]?.name || null)
-                        }
-                        className="opacity-0 w-full h-full cursor-pointer"
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="pl-10 pr-4 py-2.5 bg-(--bg) border border-(--border) rounded-xl text-sm outline-none focus:border-orange-500 w-full placeholder:text-(--text-sub)"
                       />
-                    </label>
-                    {selectedFileName ? (
-                      <p className="text-xs font-bold text-orange-600 px-4 text-center break-all">
-                        {selectedFileName}
-                      </p>
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-(--text-main)">
-                          Drop JSON
-                        </p>
-                        <p className="text-[10px] text-(--text-sub)">
-                          or click to browse
-                        </p>
-                      </div>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <Filter className="w-4 h-4 text-(--text-sub)" />
+                      <select
+                        value={userRoleFilter}
+                        onChange={(e) =>
+                          setUserRoleFilter(e.target.value as any)
+                        }
+                        className="flex-1 sm:flex-none pl-3 pr-8 py-2.5 bg-(--bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-orange-500 cursor-pointer"
+                      >
+                        <option value="all">Filter: All Roles</option>
+                        <option value="admin">Filter: Admins</option>
+                        <option value="user">Filter: Standard Users</option>
+                      </select>
+                    </div>
                   </div>
-                  <button
-                    disabled={isUploading || !selectedFileName}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50"
-                  >
-                    {isUploading ? "Processing..." : "Upload & Activate"}
-                  </button>
-                </form>
-              </div>
-
-              {/* Right Column: Split into Top (Files) and Bottom (Audit) */}
-              <div className="lg:w-2/3 flex flex-col h-full divide-y divide-(--border)">
-                {/* Unified Filters for Logs */}
-                <div className="shrink-0 p-3 bg-(--card-bg) border-b border-(--border) flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-(--text-sub)" />
-                    <input
-                      type="text"
-                      placeholder="Search filename or email..."
-                      value={logSearch}
-                      onChange={(e) => setLogSearch(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 w-full bg-(--bg) border border-(--border) rounded-lg text-xs outline-none focus:border-orange-500"
-                    />
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={logDateFilter}
-                      onChange={(e) => setLogDateFilter(e.target.value)}
-                      className="pl-3 pr-2 py-1.5 bg-(--bg) border border-(--border) rounded-lg text-xs outline-none focus:border-orange-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Top Half: Upload History */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="shrink-0 p-2 bg-(--bg)/30 border-b border-(--border) flex justify-between items-center px-4">
-                    <span className="text-[10px] font-bold text-(--text-sub) uppercase">
-                      Upload History
-                    </span>
-                    <span className="text-[10px] bg-(--card-bg) px-2 py-0.5 rounded text-(--text-sub)">
-                      {uploadLogs.length}
-                    </span>
-                  </div>
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                  <div className="flex-1 overflow-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
+                      <thead className="bg-(--bg) sticky top-0 z-10 border-b border-(--border)">
+                        <tr>
+                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                            User Profile
+                          </th>
+                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                            Assigned Role
+                          </th>
+                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                            Account Created
+                          </th>
+                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest text-right">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
                       <tbody className="divide-y divide-(--border)">
-                        {uploadLogs.map((log) => (
+                        {filteredUsers.map((user) => (
                           <tr
-                            key={log._id}
-                            className="hover:bg-(--bg)/50 transition-colors group"
+                            key={user._id}
+                            className="group hover:bg-(--bg)/40 transition-colors"
                           >
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/20 text-orange-600 flex items-center justify-center shrink-0">
-                                  <FileUp className="w-4 h-4" />
+                            <td className="py-5 px-8">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm border-2 border-white/20">
+                                  {user.name.charAt(0).toUpperCase()}
                                 </div>
-                                <div className="overflow-hidden">
-                                  <p className="text-sm font-bold text-(--text-main) truncate">
-                                    {log.fileName}
+                                <div>
+                                  <p className="font-bold text-sm text-(--text-main)">
+                                    {user.name}
+                                  </p>
+                                  <p className="text-xs text-(--text-sub) font-medium">
+                                    {user.email}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-xs text-(--text-sub)">
-                              {log.uploaderEmail}
+                            <td className="py-5 px-8">
+                              {user.role === "admin" ? (
+                                <span className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black ring-1 ring-red-100 dark:ring-red-500/20">
+                                  <ShieldAlert className="w-3.5 h-3.5" /> Admin
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-black ring-1 ring-blue-100 dark:ring-blue-500/20">
+                                  <User className="w-3.5 h-3.5" /> Standard
+                                </span>
+                              )}
                             </td>
-                            <td className="py-3 px-4 text-xs text-(--text-sub) text-right">
-                              {new Date(log.uploadedAt).toLocaleDateString()}
+                            <td className="py-5 px-8 text-xs font-bold text-(--text-sub)">
+                              {new Date(user.createdAt).toLocaleDateString(
+                                undefined,
+                                { dateStyle: "medium" },
+                              )}
+                            </td>
+                            <td className="py-5 px-8 text-right">
+                              <div className="flex items-center justify-end gap-3">
+                                <button
+                                  onClick={() =>
+                                    initiateToggleRole(user._id, user.role)
+                                  }
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all border ${user.role === "admin" ? "bg-orange-50 text-orange-500 border-orange-100 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400" : "bg-blue-50 text-blue-500 border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400"} hover:scale-105 active:scale-95`}
+                                >
+                                  <Shield className="w-3.5 h-3.5" />{" "}
+                                  {user.role === "admin" ? "Demote" : "Promote"}
+                                </button>
+                                <button
+                                  onClick={() => initiateDeleteUser(user._id)}
+                                  className="p-2.5 text-(--text-sub) hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-xl transition-all"
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1422,61 +1193,201 @@ export default function AdminPage() {
                     </table>
                   </div>
                 </div>
+              )}
 
-                {/* Bottom Half: Manual Actions */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="shrink-0 p-2 bg-(--bg)/30 border-b border-(--border) flex justify-between items-center px-4">
-                    <span className="text-[10px] font-bold text-(--text-sub) uppercase">
-                      Manual Audit Trail
-                    </span>
-                    <span className="text-[10px] bg-(--card-bg) px-2 py-0.5 rounded text-(--text-sub)">
-                      {activityLogs.length}
-                    </span>
+              {activeTab === "logs" && (
+                <div className="h-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-(--border)">
+                  <div className="lg:w-1/3 flex flex-col h-full p-8 bg-(--bg)/30 shrink-0">
+                    <div className="mb-8">
+                      <h3 className="text-xl font-bold text-(--text-main) flex items-center gap-3">
+                        <UploadCloud className="w-6 h-6 text-orange-500" />{" "}
+                        System Update
+                      </h3>
+                      <p className="text-xs font-bold text-(--text-sub) mt-2 uppercase tracking-widest">
+                        Update environment graph via JSON
+                      </p>
+                    </div>
+                    <form
+                      ref={uploadFormRef}
+                      action={uploadAction}
+                      className="flex-1 flex flex-col gap-6 min-h-0"
+                    >
+                      <input
+                        type="hidden"
+                        name="uploaderEmail"
+                        value={session?.user?.email || ""}
+                      />
+                      <div className="flex-1 border-3 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-orange-500 hover:bg-(--card-bg) transition-all group min-h-0">
+                        <FileJson
+                          className={`w-14 h-14 mb-4 transition-transform group-hover:scale-110 ${selectedFileName ? "text-orange-500" : "text-(--text-sub)"}`}
+                        />
+                        <label className="absolute inset-0 cursor-pointer">
+                          <input
+                            type="file"
+                            name="file"
+                            accept=".json"
+                            required
+                            onChange={(e) =>
+                              setSelectedFileName(
+                                e.target.files?.[0]?.name || null,
+                              )
+                            }
+                            className="opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </label>
+                        {selectedFileName ? (
+                          <div className="text-center px-6">
+                            <p className="text-sm font-black text-orange-600 break-all">
+                              {selectedFileName}
+                            </p>
+                            <p className="text-[10px] font-bold text-(--text-sub) mt-1">
+                              Ready for deployment
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <p className="text-sm font-black text-(--text-main)">
+                              Drag & Drop Manifest
+                            </p>
+                            <p className="text-xs font-bold text-(--text-sub) mt-1">
+                              or click to browse local files
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        disabled={isUploading || !selectedFileName}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black transition-all disabled:opacity-50 shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 shrink-0"
+                      >
+                        {isUploading ? (
+                          "Uploading..."
+                        ) : (
+                          <>
+                            <Check className="w-5 h-5" /> Deploy Graph
+                          </>
+                        )}
+                      </button>
+                    </form>
                   </div>
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                    <table className="w-full text-left border-collapse">
-                      <tbody className="divide-y divide-(--border)">
-                        {activityLogs.map((log) => {
-                          const display = getLogDisplayData(log.fileName);
-                          const LogIcon = display.icon;
-                          return (
-                            <tr
-                              key={log._id}
-                              className="hover:bg-(--bg)/50 transition-colors"
-                            >
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${display.style}`}
-                                  >
-                                    <LogIcon className="w-4 h-4" />
+                  <div className="lg:w-2/3 flex flex-col h-full divide-y divide-(--border) min-h-0">
+                    <div className="p-4 bg-(--card-bg) flex items-center gap-4 shrink-0">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-(--text-sub)" />
+                        <input
+                          type="text"
+                          placeholder="Filter logs..."
+                          value={logSearch}
+                          onChange={(e) => setLogSearch(e.target.value)}
+                          className="pl-10 pr-4 py-2 w-full bg-(--bg) border border-(--border) rounded-xl text-sm outline-none focus:border-orange-500 placeholder:text-(--text-sub)"
+                        />
+                      </div>
+                      <input
+                        type="date"
+                        value={logDateFilter}
+                        onChange={(e) => setLogDateFilter(e.target.value)}
+                        className="px-4 py-2 bg-(--bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-orange-500"
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="px-6 py-2 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
+                        <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                          Recent Deployments
+                        </span>
+                        <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                          {uploadLogs.length}
+                        </span>
+                      </div>
+                      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                        <table className="w-full text-left border-collapse">
+                          <tbody className="divide-y divide-(--border)">
+                            {uploadLogs.map((log) => (
+                              <tr
+                                key={log._id}
+                                className="hover:bg-(--bg)/40 transition-colors group"
+                              >
+                                <td className="py-4 px-6">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-orange-900 dark:bg-orange-400 text-orange-50 flex items-center justify-center shrink border border-orange-50 dark:border-orange-50">
+                                      <FileUp className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-bold text-(--text-main) truncate group-hover:text-orange-500 transition-colors">
+                                        {log.fileName}
+                                      </p>
+                                      <p className="text-[10px] font-bold text-(--text-sub) uppercase">
+                                        {log.uploaderEmail}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="text-sm font-bold text-(--text-main)">
-                                      {display.details}
-                                    </p>
-                                    <span className="text-[10px] uppercase text-(--text-sub)">
-                                      {display.type}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-xs text-(--text-sub)">
-                                {log.uploaderEmail}
-                              </td>
-                              <td className="py-3 px-4 text-xs text-(--text-sub) text-right">
-                                {new Date(log.uploadedAt).toLocaleString()}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </td>
+                                <td className="py-4 px-6 text-xs font-black text-(--text-sub) text-right">
+                                  {new Date(
+                                    log.uploadedAt,
+                                  ).toLocaleDateString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="px-6 py-2 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
+                        <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                          Manual Audit Trail
+                        </span>
+                        <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                          {activityLogs.length}
+                        </span>
+                      </div>
+                      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                        <table className="w-full text-left border-collapse">
+                          <tbody className="divide-y divide-(--border)">
+                            {activityLogs.map((log) => {
+                              const display = getLogDisplayData(log.fileName);
+                              const LogIcon = display.icon;
+                              return (
+                                <tr
+                                  key={log._id}
+                                  className="hover:bg-(--bg)/40 transition-colors"
+                                >
+                                  <td className="py-4 px-6">
+                                    <div className="flex items-center gap-4">
+                                      <div
+                                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${display.style}`}
+                                      >
+                                        <LogIcon className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-bold text-(--text-main)">
+                                          {display.details}
+                                        </p>
+                                        <p className="text-[10px] font-black uppercase text-(--text-sub)">
+                                          {display.type} • {log.uploaderEmail}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-6 text-xs font-black text-(--text-sub) text-right">
+                                    {new Date(
+                                      log.uploadedAt,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </main>
     </div>
