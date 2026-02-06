@@ -1,27 +1,64 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f8fafc;
-  --card-bg: rgba(255, 255, 255, 0.95);
-  --text-main: #0f172a;
-  --text-sub: #64748b;
-  --border: #e2e8f0;
-  --accent: #3b82f6;
-  --danger: #ef4444;
-  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  /* Base Backgrounds */
+  --bg: #f8fafc; /* Slate 50 */
+  --card-bg: #ffffff; /* White */
+  --card-hover: #f1f5f9; /* Slate 100 */
+
+  /* Text */
+  --text-main: #0f172a; /* Slate 900 */
+  --text-sub: #64748b; /* Slate 500 */
+
+  /* Borders & Inputs */
+  --border: #e2e8f0; /* Slate 200 */
   --input-bg: #ffffff;
+
+  /* Primary Brand Color (Orange) */
+  --primary: #f97316; /* Orange 500 */
+  --primary-fg: #ffffff; /* Text on primary */
+  --primary-subtle: #fff7ed; /* Orange 50 */
+
+  /* Semantic Status Colors */
+  --danger: #ef4444; /* Red 500 */
+  --danger-bg: #fef2f2; /* Red 50 */
+
+  /* Accents (for specific sections) */
+  --accent-blue: #3b82f6;
+  --accent-purple: #a855f7;
+
+  /* Misc */
+  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 .dark {
-  --bg: #0f172a;
-  --card-bg: rgba(30, 41, 59, 0.95);
-  --text-main: #f8fafc;
-  --text-sub: #94a3b8;
-  --border: #334155;
-  --accent: #38bdf8;
-  --danger: #f87171;
+  /* Base Backgrounds */
+  --bg: #020617; /* Slate 950 (Rich dark) */
+  --card-bg: #0f172a; /* Slate 900 */
+  --card-hover: #1e293b; /* Slate 800 */
+
+  /* Text */
+  --text-main: #f8fafc; /* Slate 50 */
+  --text-sub: #94a3b8; /* Slate 400 */
+
+  /* Borders & Inputs */
+  --border: #1e293b; /* Slate 800 */
+  --input-bg: #020617; /* Darker than card */
+
+  /* Primary Brand Color (Orange - Adjusted for Dark Mode) */
+  --primary: #fb923c; /* Orange 400 (Brighter/Lighter) */
+  --primary-fg: #0f172a; /* Dark text on bright orange */
+  --primary-subtle: rgba(251, 146, 60, 0.15); /* Low opacity orange */
+
+  /* Semantic Status Colors */
+  --danger: #f87171; /* Red 400 */
+  --danger-bg: rgba(239, 68, 68, 0.15);
+
+  /* Accents */
+  --accent-blue: #60a5fa; /* Blue 400 */
+  --accent-purple: #c084fc; /* Purple 400 */
+
   --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --input-bg: #1e293b;
 }
 
 body {
@@ -39,6 +76,7 @@ input {
   border-color: var(--border);
 }
 
+/* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -48,17 +86,17 @@ input {
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 5px;
-  border: 2px solid var(--bg); 
+  border: 2px solid var(--bg);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-sub);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent; 
+  background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: var(--border);

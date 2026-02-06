@@ -34,7 +34,6 @@ import {
   Layers,
   Pencil,
   Trash,
-  X,
   Shield,
   ShieldAlert,
   Search,
@@ -503,7 +502,7 @@ export default function AdminPage() {
         details: fileName.replace("Manual Add: ", ""),
         icon: PlusCircle,
         style:
-          "text-green-500 bg-green-50 border-green-800 dark:bg-green-700 dark:text-green-50",
+          "text-green-100 bg-green-50 border-green-100 dark:bg-green-500 dark:text-green-100",
       };
     if (fileName.startsWith("Manual Delete:"))
       return {
@@ -511,7 +510,7 @@ export default function AdminPage() {
         details: fileName.replace("Manual Delete: ", ""),
         icon: Trash2,
         style:
-          "text-red-500 bg-red-50 border-red-800 dark:bg-red-700 dark:text-red-50",
+          "text-red-100 bg-red-50 border-red-100 dark:bg-red-500 dark:text-red-100",
       };
     if (fileName.startsWith("Manual Connect:"))
       return {
@@ -519,7 +518,7 @@ export default function AdminPage() {
         details: fileName.replace("Manual Connect: ", ""),
         icon: LinkIcon,
         style:
-          "text-blue-500 bg-blue-50 border-blue-800 dark:bg-blue-700 dark:text-blue-50",
+          "text-blue-100 bg-blue-50 border-blue-100 dark:bg-blue-500 dark:text-blue-100",
       };
     if (fileName.startsWith("Manual Disconnect:"))
       return {
@@ -527,14 +526,14 @@ export default function AdminPage() {
         details: fileName.replace("Manual Disconnect: ", ""),
         icon: LinkIcon,
         style:
-          "text-red-500 bg-red-50 border-red-800 dark:bg-red-700 dark:text-red-50",
+          "text-red-100 bg-red-50 border-red-100 dark:bg-red-500 dark:text-red-100",
       };
     return {
       type: "File Upload",
       details: fileName,
       icon: FileUp,
       style:
-        "text-orange-500 bg-orange-50 border-orange-800 dark:bg-orange-700 dark:text-orange-50",
+        "text-(--primary) bg-(--primary-subtle) border-(--primary) dark:border-(--primary)/50",
     };
   };
 
@@ -561,9 +560,9 @@ export default function AdminPage() {
         isDangerous={confirmation.isDangerous}
       />
 
-      <aside className="w-64 bg-(--card-bg) border-r border-(--border) flex flex-col shrink-0 z-50">
+      <aside className="w-64 bg-(--card-bg) border-r border-(--border) flex flex-col shrink-0 z-50 transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 border-b border-(--border)">
-          <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+          <div className="w-8 h-8 rounded-lg bg-(--primary) flex items-center justify-center text-white shadow-lg shadow-(--primary)/20">
             <Shield className="w-5 h-5" />
           </div>
           <span className="font-bold text-lg tracking-tight">Kivo Admin</span>
@@ -574,19 +573,19 @@ export default function AdminPage() {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as Tab)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all group ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group overflow-hidden ${
                 activeTab === item.id
-                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                  : "text-(--text-sub) hover:bg-(--bg) hover:text-(--text-main)"
+                  ? "bg-(--primary-subtle) text-(--primary)"
+                  : "text-(--text-sub) hover:bg-(--card-hover) hover:text-(--text-main)"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <item.icon
-                  className={`w-5 h-5 ${activeTab === item.id ? "text-white" : "text-(--text-sub) group-hover:text-(--text-main)"}`}
-                />
-                <span className="text-sm font-semibold">{item.label}</span>
-              </div>
-              {activeTab === item.id && <ChevronRight className="w-4 h-4" />}
+              {activeTab === item.id && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-(--primary) rounded-r-md shadow-[0_0_8px_var(--primary)]" />
+              )}
+              <item.icon
+                className={`w-5 h-5 transition-colors ${activeTab === item.id ? "text-(--primary)" : "text-(--text-sub) group-hover:text-(--text-main)"}`}
+              />
+              <span className="text-sm font-semibold">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -594,28 +593,34 @@ export default function AdminPage() {
         <div className="p-4 border-t border-(--border) space-y-2">
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-(--text-sub) hover:bg-(--bg) hover:text-(--text-main) transition-all"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-(--text-sub) hover:bg-(--card-hover) hover:text-(--text-main) transition-all"
           >
             <Home className="w-5 h-5" />
             <span className="text-sm font-semibold">Graph View</span>
           </Link>
+
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-(--text-sub) hover:bg-(--bg) hover:text-(--text-main) transition-all"
+            className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) text-(--text-sub) hover:text-(--text-main) hover:border-(--primary)/50 transition-all duration-300 overflow-hidden group"
           >
-            {isDarkMode ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-            <span className="text-sm font-semibold">
-              {isDarkMode ? "Light Mode" : "Dark Mode"}
-            </span>
+            <div className="relative z-10 flex items-center gap-3">
+              {isDarkMode ? (
+                <Moon className="w-5 h-5 text-(--accent-blue)" />
+              ) : (
+                <Sun className="w-5 h-5 text-amber-500" />
+              )}
+              <span className="text-sm font-semibold">
+                {isDarkMode ? "Dark Mode" : "Light Mode"}
+              </span>
+            </div>
+            {/* Hover Slide Effect */}
+            <div className="absolute inset-0 bg-linear-to-r from-(--primary)/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
           </button>
+
           <div className="relative pt-2" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) hover:border-orange-500/50 transition-all"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) hover:border-(--primary)/50 transition-all"
             >
               <div className="w-8 h-8 rounded-full bg-linear-to-tr from-orange-400 to-red-500 text-white flex items-center justify-center shrink-0">
                 <User className="w-4 h-4" />
@@ -633,7 +638,7 @@ export default function AdminPage() {
               <div className="absolute bottom-full left-0 mb-2 w-full bg-(--card-bg) border border-(--border) rounded-xl shadow-xl p-1 z-50 animate-in slide-in-from-bottom-2 duration-200">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition w-full text-left font-bold"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-(--danger) hover:bg-(--danger-bg) rounded-lg transition w-full text-left font-bold"
                 >
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
@@ -648,56 +653,61 @@ export default function AdminPage() {
           <h2 className="text-xl font-bold capitalize text-(--text-main)">
             {activeTab}
           </h2>
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-bold text-(--text-sub) uppercase tracking-wider">
-              Status
-            </p>
-            <div className="flex items-center gap-1.5 justify-end">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-bold">System Online</span>
-            </div>
-          </div>
         </header>
-
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Stats Cards with Improved Depth */}
           <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-            <div className="bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm flex items-center gap-5 hover:border-orange-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
-                  Companies
-                </p>
-                <p className="text-3xl font-black text-(--text-main)">
-                  {stats.companyCount}
-                </p>
-              </div>
-            </div>
-            <div className="bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm flex items-center gap-5 hover:border-blue-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
-                  Users
-                </p>
-                <p className="text-3xl font-black text-(--text-main)">
-                  {stats.userCount}
-                </p>
+            {/* Companies Card */}
+            <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--primary) transition-all duration-300">
+              <div className="absolute inset-0 bg-linear-to-br from-(--primary)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex items-center gap-5">
+                <div className="w-12 h-12 rounded-xl bg-(--primary-subtle) flex items-center justify-center text-(--primary) group-hover:scale-110 transition-transform">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                    Companies
+                  </p>
+                  <p className="text-3xl font-black text-(--text-main)">
+                    {stats.companyCount}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm flex items-center gap-5 hover:border-purple-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                <Layers className="w-6 h-6" />
+
+            {/* Users Card */}
+            <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--accent-blue) transition-all duration-300">
+              <div className="absolute inset-0 bg-linear-to-br from-(--accent-blue)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex items-center gap-5">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-(--accent-blue) group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                    Users
+                  </p>
+                  <p className="text-3xl font-black text-(--text-main)">
+                    {stats.userCount}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
-                  Modules
-                </p>
-                <p className="text-3xl font-black text-(--text-main)">
-                  {stats.moduleCount}
-                </p>
+            </div>
+
+            {/* Modules Card */}
+            <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--accent-purple) transition-all duration-300">
+              <div className="absolute inset-0 bg-linear-to-br from-(--accent-purple)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex items-center gap-5">
+                <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-(--accent-purple) group-hover:scale-110 transition-transform">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                    Modules
+                  </p>
+                  <p className="text-3xl font-black text-(--text-main)">
+                    {stats.moduleCount}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -707,7 +717,7 @@ export default function AdminPage() {
               {activeTab === "companies" && (
                 <div className="h-full flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-(--border)">
                   <div
-                    className={`xl:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${editingId ? "bg-orange-50/50 dark:bg-orange-950/20" : "bg-(--card-bg)"}`}
+                    className={`xl:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${editingId ? "bg-(--primary-subtle)" : "bg-(--card-bg)"}`}
                   >
                     <div className="p-6 border-b border-(--border) flex justify-between items-center shrink-0">
                       <h3 className="font-bold text-lg text-(--text-main)">
@@ -716,7 +726,7 @@ export default function AdminPage() {
                       {editingId && (
                         <button
                           onClick={resetForm}
-                          className="text-xs font-bold text-orange-600 hover:underline"
+                          className="text-xs font-bold text-(--primary) hover:underline"
                         >
                           Cancel
                         </button>
@@ -738,7 +748,7 @@ export default function AdminPage() {
                             value={formName}
                             onChange={(e) => setFormName(e.target.value)}
                             placeholder="e.g. Acme Corp"
-                            className="w-full px-4 py-2.5 rounded-xl bg-(--bg) border border-(--border) focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none text-(--text-main) placeholder:text-(--text-sub)"
+                            className="w-full px-4 py-2.5 rounded-xl bg-(--input-bg) border border-(--border) focus:border-(--primary) focus:ring-4 focus:ring-(--primary)/10 outline-none text-(--text-main) placeholder:text-(--text-sub) transition-all"
                           />
                         </div>
                         <div>
@@ -750,10 +760,10 @@ export default function AdminPage() {
                               <div
                                 key={mod}
                                 onClick={() => toggleModule(mod)}
-                                className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-all select-none ${formModules.has(mod) ? "bg-orange-500 text-white border-orange-500" : "bg-(--bg) border-(--border) hover:border-orange-300"}`}
+                                className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-all select-none ${formModules.has(mod) ? "bg-(--primary) text-(--primary-fg) border-(--primary)" : "bg-(--bg) border-(--border) hover:border-(--primary)/50"}`}
                               >
                                 <div
-                                  className={`w-4 h-4 rounded-md border flex items-center justify-center ${formModules.has(mod) ? "bg-white text-orange-500 border-white" : "bg-white/50 border-slate-300"}`}
+                                  className={`w-4 h-4 rounded-md border flex items-center justify-center ${formModules.has(mod) ? "bg-white text-(--primary) border-white" : "bg-white/50 border-slate-300"}`}
                                 >
                                   {formModules.has(mod) && (
                                     <Check className="w-3 h-3" />
@@ -783,13 +793,13 @@ export default function AdminPage() {
                                     className="bg-(--bg) border border-(--border) rounded-xl overflow-hidden"
                                   >
                                     <div className="px-4 py-2 bg-(--card-bg) border-b border-(--border) flex justify-between items-center">
-                                      <span className="text-[10px] font-black uppercase text-orange-600">
+                                      <span className="text-[10px] font-black uppercase text-(--primary)">
                                         {mod}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => toggleAllFeatures(mod)}
-                                        className="text-[10px] font-bold text-(--text-sub) hover:text-orange-600"
+                                        className="text-[10px] font-bold text-(--text-sub) hover:text-(--primary)"
                                       >
                                         Toggle All
                                       </button>
@@ -810,7 +820,7 @@ export default function AdminPage() {
                                             onChange={() =>
                                               toggleFeature(mod, feature)
                                             }
-                                            className="rounded-md border-slate-300 text-orange-500 focus:ring-orange-500 w-4 h-4"
+                                            className="rounded-md border-slate-300 text-(--primary) focus:ring-(--primary) w-4 h-4"
                                           />
                                           <span className="text-xs text-(--text-main) font-medium group-hover:translate-x-0.5 transition-transform">
                                             {feature}
@@ -830,7 +840,7 @@ export default function AdminPage() {
                       <button
                         form="company-form"
                         disabled={isSavingCompany}
-                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+                        className="w-full bg-(--primary) hover:brightness-110 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-(--primary)/20 active:scale-[0.98]"
                       >
                         {isSavingCompany
                           ? "Saving Changes..."
@@ -850,7 +860,7 @@ export default function AdminPage() {
                         onChange={(e) =>
                           setSortOption(e.target.value as SortOption)
                         }
-                        className="text-xs font-bold bg-(--card-bg) border border-(--border) rounded-lg px-3 py-1.5 outline-none focus:border-orange-500"
+                        className="text-xs font-bold bg-(--card-bg) border border-(--border) rounded-lg px-3 py-1.5 outline-none focus:border-(--primary)"
                       >
                         <option value="name-asc">Name: A to Z</option>
                         <option value="name-desc">Name: Z to A</option>
@@ -866,7 +876,7 @@ export default function AdminPage() {
                       {sortedCompanies.map((company) => (
                         <div
                           key={company._id}
-                          className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${editingId === company._id ? "bg-orange-500/5 border-orange-500 ring-1 ring-orange-500" : "bg-(--card-bg) border-(--border) hover:border-orange-500/30 hover:shadow-md"}`}
+                          className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${editingId === company._id ? "bg-(--primary-subtle) border-(--primary) ring-1 ring-(--primary)" : "bg-(--card-bg) border-(--border) hover:border-(--primary)/30 hover:shadow-md"}`}
                         >
                           <div className="flex items-center gap-5">
                             <div className="w-16 h-16 rounded-xl bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-(--text-sub) font-black text-xl border border-(--border) transition-colors">
@@ -874,7 +884,7 @@ export default function AdminPage() {
                             </div>
                             <div>
                               <h4
-                                className={`font-bold text-base ${editingId === company._id ? "text-orange-600" : "text-(--text-main)"}`}
+                                className={`font-bold text-base ${editingId === company._id ? "text-(--primary)" : "text-(--text-main)"}`}
                               >
                                 {company.name}
                               </h4>
@@ -893,13 +903,13 @@ export default function AdminPage() {
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleEdit(company)}
-                              className="p-2.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-xl transition-colors border border-transparent hover:border-blue-200"
+                              className="p-2.5 text-(--accent-blue) hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors border border-transparent hover:border-blue-200"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => initiateDeleteCompany(company._id)}
-                              className="p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900 rounded-xl transition-colors border border-transparent hover:border-red-200"
+                              className="p-2.5 text-(--danger) hover:bg-(--danger-bg) rounded-xl transition-colors border border-transparent hover:border-red-200"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
@@ -923,7 +933,7 @@ export default function AdminPage() {
                       {editingModuleId && (
                         <button
                           onClick={resetModuleForm}
-                          className="text-xs font-bold text-purple-600 hover:underline"
+                          className="text-xs font-bold text-(--accent-purple) hover:underline"
                         >
                           Cancel
                         </button>
@@ -951,7 +961,7 @@ export default function AdminPage() {
                             value={moduleName}
                             onChange={(e) => setModuleName(e.target.value)}
                             placeholder="e.g. Finance"
-                            className="w-full px-4 py-2.5 rounded-xl bg-(--bg) border border-(--border) focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none text-(--text-main) placeholder:text-(--text-sub)"
+                            className="w-full px-4 py-2.5 rounded-xl bg-(--input-bg) border border-(--border) focus:border-(--accent-purple) focus:ring-4 focus:ring-purple-500/10 outline-none text-(--text-main) placeholder:text-(--text-sub)"
                           />
                         </div>
                         <div>
@@ -969,7 +979,7 @@ export default function AdminPage() {
                                 key={color}
                                 type="button"
                                 onClick={() => setSelectedModuleColor(color)}
-                                className={`w-10 h-10 rounded-full border-4 transition-all hover:scale-110 ${selectedModuleColor === color ? "border-white ring-4 ring-purple-500 scale-110 shadow-lg" : "border-transparent"}`}
+                                className={`w-10 h-10 rounded-full border-4 transition-all ${selectedModuleColor === color ? "border-white ring-4 ring-(--accent-purple) shadow-lg" : "border-transparent"}`}
                                 style={{ backgroundColor: color }}
                               />
                             ))}
@@ -1001,7 +1011,7 @@ export default function AdminPage() {
                       <button
                         form="module-form"
                         disabled={isModulePending}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-purple-500/20"
+                        className="w-full bg-(--accent-purple) hover:brightness-110 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-purple-500/20"
                       >
                         {isModulePending
                           ? "Processing..."
@@ -1018,7 +1028,7 @@ export default function AdminPage() {
                           placeholder="Search module library..."
                           value={moduleSearch}
                           onChange={(e) => setModuleSearch(e.target.value)}
-                          className="pl-10 pr-4 py-2 w-full bg-(--bg) border border-(--border) rounded-xl text-sm outline-none focus:border-purple-500"
+                          className="pl-10 pr-4 py-2 w-full bg-(--input-bg) border border-(--border) rounded-xl text-sm outline-none focus:border-(--accent-purple)"
                         />
                       </div>
                       <select
@@ -1026,7 +1036,7 @@ export default function AdminPage() {
                         onChange={(e) =>
                           setModuleTypeFilter(e.target.value as any)
                         }
-                        className="text-xs font-bold bg-(--bg) border border-(--border) rounded-xl px-4 py-2 outline-none"
+                        className="text-xs font-bold bg-(--input-bg) border border-(--border) rounded-xl px-4 py-2 outline-none"
                       >
                         <option value="all">All Modules</option>
                         <option value="default">System Core</option>
@@ -1037,7 +1047,7 @@ export default function AdminPage() {
                       {filteredModules.map((mod) => (
                         <div
                           key={mod._id}
-                          className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${editingModuleId === mod._id ? "bg-purple-500/5 border-purple-500 ring-1 ring-purple-500" : "bg-(--card-bg) border-(--border) hover:shadow-md"} ${mod.type === "default" ? "opacity-75" : ""}`}
+                          className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${editingModuleId === mod._id ? "bg-purple-500/5 border-(--accent-purple) ring-1 ring-(--accent-purple)" : "bg-(--card-bg) border-(--border) hover:shadow-md"} ${mod.type === "default" ? "opacity-75" : ""}`}
                         >
                           <div className="flex items-center gap-4">
                             <div
@@ -1060,7 +1070,7 @@ export default function AdminPage() {
                               <>
                                 <button
                                   onClick={() => handleEditModule(mod)}
-                                  className="p-2 text-(--text-sub) hover:text-purple-600 rounded-lg"
+                                  className="p-2 text-(--text-sub) hover:text-(--accent-purple) rounded-lg"
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>
@@ -1068,7 +1078,7 @@ export default function AdminPage() {
                                   onClick={() =>
                                     initiateDeleteModule(mod._id, mod.name)
                                   }
-                                  className="p-2 text-(--text-sub) hover:text-red-500 rounded-lg"
+                                  className="p-2 text-(--text-sub) hover:text-(--danger) rounded-lg"
                                 >
                                   <Trash className="w-4 h-4" />
                                 </button>
@@ -1094,7 +1104,7 @@ export default function AdminPage() {
                         placeholder="Search by name or email..."
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2.5 bg-(--bg) border border-(--border) rounded-xl text-sm outline-none focus:border-orange-500 w-full placeholder:text-(--text-sub)"
+                        className="pl-10 pr-4 py-2.5 bg-(--input-bg) border border-(--border) rounded-xl text-sm outline-none focus:border-(--primary) w-full placeholder:text-(--text-sub)"
                       />
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -1104,18 +1114,21 @@ export default function AdminPage() {
                         onChange={(e) =>
                           setUserRoleFilter(e.target.value as any)
                         }
-                        className="flex-1 sm:flex-none pl-3 pr-8 py-2.5 bg-(--bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-orange-500 cursor-pointer"
+                        className="flex-1 sm:flex-none pl-3 pr-8 py-2.5 bg-(--input-bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-(--primary) cursor-pointer"
                       >
-                        <option value="all">Filter: All Roles</option>
-                        <option value="admin">Filter: Admins</option>
-                        <option value="user">Filter: Standard Users</option>
+                        <option value="all">All Roles</option>
+                        <option value="admin">Admins</option>
+                        <option value="user">Standard Users</option>
                       </select>
                     </div>
                   </div>
                   <div className="flex-1 overflow-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
-                      <thead className="bg-(--bg) sticky top-0 z-10 border-b border-(--border)">
+                      <thead className="bg-(--card-bg)/80 backdrop-blur-md sticky top-0 z-10 border-b border-(--border)">
                         <tr>
+                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest text-center w-16">
+                            S.No.
+                          </th>
                           <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
                             User Profile
                           </th>
@@ -1131,11 +1144,14 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-(--border)">
-                        {filteredUsers.map((user) => (
+                        {filteredUsers.map((user, index) => (
                           <tr
                             key={user._id}
-                            className="group hover:bg-(--bg)/40 transition-colors"
+                            className="group hover:bg-(--card-hover) transition-colors"
                           >
+                            <td className="py-5 px-8 text-center text-xs font-bold text-(--text-sub)">
+                              {index + 1}
+                            </td>
                             <td className="py-5 px-8">
                               <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm border-2 border-white/20">
@@ -1153,11 +1169,11 @@ export default function AdminPage() {
                             </td>
                             <td className="py-5 px-8">
                               {user.role === "admin" ? (
-                                <span className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black ring-1 ring-red-100 dark:ring-red-500/20">
+                                <span className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-500/10 text-(--danger) px-3 py-1 rounded-full text-xs font-black ring-1 ring-red-100 dark:ring-red-500/20">
                                   <ShieldAlert className="w-3.5 h-3.5" /> Admin
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-black ring-1 ring-blue-100 dark:ring-blue-500/20">
+                                <span className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 text-(--accent-blue) px-3 py-1 rounded-full text-xs font-black ring-1 ring-blue-100 dark:ring-blue-500/20">
                                   <User className="w-3.5 h-3.5" /> Standard
                                 </span>
                               )}
@@ -1174,14 +1190,14 @@ export default function AdminPage() {
                                   onClick={() =>
                                     initiateToggleRole(user._id, user.role)
                                   }
-                                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all border ${user.role === "admin" ? "bg-orange-50 text-orange-500 border-orange-100 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400" : "bg-blue-50 text-blue-500 border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400"} hover:scale-105 active:scale-95`}
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all border ${user.role === "admin" ? "bg-(--primary-subtle) text-(--primary) border-orange-100 dark:border-orange-500/20" : "bg-blue-50 text-(--accent-blue) border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20"} hover:scale-105 active:scale-95`}
                                 >
                                   <Shield className="w-3.5 h-3.5" />{" "}
                                   {user.role === "admin" ? "Demote" : "Promote"}
                                 </button>
                                 <button
                                   onClick={() => initiateDeleteUser(user._id)}
-                                  className="p-2.5 text-(--text-sub) hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-xl transition-all"
+                                  className="p-2.5 text-(--text-sub) hover:text-(--danger) hover:bg-(--danger-bg) rounded-xl transition-all"
                                 >
                                   <Trash className="w-4 h-4" />
                                 </button>
@@ -1200,7 +1216,7 @@ export default function AdminPage() {
                   <div className="lg:w-1/3 flex flex-col h-full p-8 bg-(--bg)/30 shrink-0">
                     <div className="mb-8">
                       <h3 className="text-xl font-bold text-(--text-main) flex items-center gap-3">
-                        <UploadCloud className="w-6 h-6 text-orange-500" />{" "}
+                        <UploadCloud className="w-6 h-6 text-(--primary)" />{" "}
                         System Update
                       </h3>
                       <p className="text-xs font-bold text-(--text-sub) mt-2 uppercase tracking-widest">
@@ -1217,9 +1233,9 @@ export default function AdminPage() {
                         name="uploaderEmail"
                         value={session?.user?.email || ""}
                       />
-                      <div className="flex-1 border-3 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-orange-500 hover:bg-(--card-bg) transition-all group min-h-0">
+                      <div className="flex-1 border-3 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-(--primary) hover:bg-(--card-bg) transition-all group min-h-0">
                         <FileJson
-                          className={`w-14 h-14 mb-4 transition-transform group-hover:scale-110 ${selectedFileName ? "text-orange-500" : "text-(--text-sub)"}`}
+                          className={`w-14 h-14 mb-4 transition-transform group-hover:scale-110 ${selectedFileName ? "text-(--primary)" : "text-(--text-sub)"}`}
                         />
                         <label className="absolute inset-0 cursor-pointer">
                           <input
@@ -1237,7 +1253,7 @@ export default function AdminPage() {
                         </label>
                         {selectedFileName ? (
                           <div className="text-center px-6">
-                            <p className="text-sm font-black text-orange-600 break-all">
+                            <p className="text-sm font-black text-(--primary) break-all">
                               {selectedFileName}
                             </p>
                             <p className="text-[10px] font-bold text-(--text-sub) mt-1">
@@ -1257,7 +1273,7 @@ export default function AdminPage() {
                       </div>
                       <button
                         disabled={isUploading || !selectedFileName}
-                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black transition-all disabled:opacity-50 shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 shrink-0"
+                        className="w-full bg-(--primary) hover:brightness-110 text-white py-4 rounded-2xl font-black transition-all disabled:opacity-50 shadow-xl shadow-(--primary)/20 flex items-center justify-center gap-2 shrink-0"
                       >
                         {isUploading ? (
                           "Uploading..."
@@ -1278,14 +1294,14 @@ export default function AdminPage() {
                           placeholder="Filter logs..."
                           value={logSearch}
                           onChange={(e) => setLogSearch(e.target.value)}
-                          className="pl-10 pr-4 py-2 w-full bg-(--bg) border border-(--border) rounded-xl text-sm outline-none focus:border-orange-500 placeholder:text-(--text-sub)"
+                          className="pl-10 pr-4 py-2 w-full bg-(--input-bg) border border-(--border) rounded-xl text-sm outline-none focus:border-(--primary) placeholder:text-(--text-sub)"
                         />
                       </div>
                       <input
                         type="date"
                         value={logDateFilter}
                         onChange={(e) => setLogDateFilter(e.target.value)}
-                        className="px-4 py-2 bg-(--bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-orange-500"
+                        className="px-4 py-2 bg-(--input-bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-(--primary)"
                       />
                     </div>
                     <div className="flex-1 flex flex-col min-h-0">
@@ -1293,7 +1309,7 @@ export default function AdminPage() {
                         <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
                           Recent Deployments
                         </span>
-                        <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black bg-(--primary) text-white px-2 py-0.5 rounded-full">
                           {uploadLogs.length}
                         </span>
                       </div>
@@ -1303,7 +1319,7 @@ export default function AdminPage() {
                             {uploadLogs.map((log) => (
                               <tr
                                 key={log._id}
-                                className="hover:bg-(--bg)/40 transition-colors group"
+                                className="hover:bg-(--card-hover) transition-colors group"
                               >
                                 <td className="py-4 px-6">
                                   <div className="flex items-center gap-4">
@@ -1311,7 +1327,7 @@ export default function AdminPage() {
                                       <FileUp className="w-5 h-5" />
                                     </div>
                                     <div>
-                                      <p className="text-sm font-bold text-(--text-main) truncate group-hover:text-orange-500 transition-colors">
+                                      <p className="text-sm font-bold text-(--text-main) truncate group-hover:text-(--primary) transition-colors">
                                         {log.fileName}
                                       </p>
                                       <p className="text-[10px] font-bold text-(--text-sub) uppercase">
@@ -1336,7 +1352,7 @@ export default function AdminPage() {
                         <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
                           Manual Audit Trail
                         </span>
-                        <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black bg-(--accent-blue) text-white px-2 py-0.5 rounded-full">
                           {activityLogs.length}
                         </span>
                       </div>
@@ -1349,7 +1365,7 @@ export default function AdminPage() {
                               return (
                                 <tr
                                   key={log._id}
-                                  className="hover:bg-(--bg)/40 transition-colors"
+                                  className="hover:bg-(--card-hover) transition-colors"
                                 >
                                   <td className="py-4 px-6">
                                     <div className="flex items-center gap-4">
