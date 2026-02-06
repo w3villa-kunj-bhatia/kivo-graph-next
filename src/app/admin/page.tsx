@@ -47,8 +47,8 @@ import {
   FileUp,
   Check,
   Filter,
-  ChevronRight,
   Activity,
+  Calendar,
 } from "lucide-react";
 
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
@@ -1282,7 +1282,7 @@ export default function AdminPage() {
                       </button>
                     </form>
                   </div>
-                  <div className="lg:w-2/3 flex flex-col h-full divide-y divide-(--border) min-h-0">
+                  <div className="lg:w-full flex flex-col h-full divide-y divide-(--border) min-h-0">
                     <div className="p-4 bg-(--card-bg) flex items-center gap-4 shrink-0">
                       <div className="relative flex-1">
                         <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-(--text-sub)" />
@@ -1294,12 +1294,24 @@ export default function AdminPage() {
                           className="pl-10 pr-4 py-2 w-full bg-(--input-bg) border border-(--border) rounded-xl text-sm outline-none focus:border-(--primary) placeholder:text-(--text-sub)"
                         />
                       </div>
-                      <input
-                        type="date"
-                        value={logDateFilter}
-                        onChange={(e) => setLogDateFilter(e.target.value)}
-                        className="px-4 py-2 bg-(--input-bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-(--primary)"
-                      />
+                      <div className="relative w-full sm:w-48 group">
+                        <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-(--text-sub) pointer-events-none z-10 group-focus-within:text-(--primary) dark:text-gray-300" />
+                        <input
+                          type="date"
+                          value={logDateFilter}
+                          onChange={(e) => setLogDateFilter(e.target.value)}
+                          className="w-full pl-10 pr-3 py-2 bg-(--input-bg) border border-(--border) rounded-xl text-sm font-bold outline-none 
+               focus:border-(--primary) cursor-pointer hover:bg-(--card-hover) transition-all
+               dark:text-gray-100 text-center
+               scheme:light dark:scheme:dark]
+               [&::-webkit-calendar-picker-indicator]:opacity-0
+               [&::-webkit-calendar-picker-indicator]:absolute
+               [&::-webkit-calendar-picker-indicator]:inset-0
+               [&::-webkit-calendar-picker-indicator]:w-full
+               [&::-webkit-calendar-picker-indicator]:h-full
+               [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                      </div>
                     </div>
                     <div className="flex-1 flex flex-col min-h-0">
                       <div className="px-6 py-2 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
