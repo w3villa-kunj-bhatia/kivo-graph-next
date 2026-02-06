@@ -4,16 +4,21 @@ import { revalidatePath } from "next/cache";
 import dbConnect from "@/lib/dbConnect";
 import Company from "@/models/Company";
 import User from "@/models/User";
+import Module from "@/models/Module";
 import { COLORS } from "@/utils/constants";
 
 export async function getStatistics() {
   await dbConnect();
   try {
-    const [companyCount, userCount] = await Promise.all([
+    const [companyCount, userCount, customModuleCount] = await Promise.all([
       Company.countDocuments(),
       User.countDocuments(),
+      Module.countDocuments(),
     ]);
-    const moduleCount = Object.keys(COLORS).length;
+
+    const defaultModuleCount = Object.keys(COLORS).length;
+    const moduleCount = defaultModuleCount + customModuleCount;
+
     return { companyCount, userCount, moduleCount };
   } catch (error) {
     return { companyCount: 0, userCount: 0, moduleCount: 0 };
