@@ -57,7 +57,8 @@ import {
   Activity,
   Check,
   LayoutGrid,
-  ListFilter,
+  Filter,
+  Calendar,
 } from "lucide-react";
 
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
@@ -78,8 +79,26 @@ export default function AdminPage() {
     moduleCount: 0,
   });
 
+  // Filters & Search States
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+
+  // User Filters
   const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState<
+    "all" | "admin" | "user"
+  >("all");
+
+  // Module Filters
+  const [moduleSearch, setModuleSearch] = useState("");
+  const [moduleTypeFilter, setModuleTypeFilter] = useState<
+    "all" | "default" | "custom"
+  >("all");
+
+  // Log Filters
+  const [logSearch, setLogSearch] = useState("");
+  const [logDateFilter, setLogDateFilter] = useState("");
+
+  // Editing States
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formModules, setFormModules] = useState<Set<string>>(new Set());
@@ -128,7 +147,7 @@ export default function AdminPage() {
   });
 
   const [moduleState, moduleAction, isModulePending] = useActionState(
-    saveModule, 
+    saveModule,
     {
       success: false,
       message: "",
@@ -166,7 +185,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (moduleState?.success) {
       setToast({ message: moduleState.message, type: "success" });
-      resetModuleForm(); 
+      resetModuleForm();
       fetchData();
     } else if (moduleState?.message) {
       setToast({ message: moduleState.message, type: "error" });
@@ -236,13 +255,70 @@ export default function AdminPage() {
     return Array.from(new Set([...defaultNames, ...dynamicNames]));
   }, [dynamicModules]);
 
+  // --- Filtering Logic ---
+
+  // Users
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const matchesSearch =
+        u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.email.toLowerCase().includes(userSearch.toLowerCase());
+      const matchesRole = userRoleFilter === "all" || u.role === userRoleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, userSearch, userRoleFilter]);
+
+  // Modules
+  const combinedModules = useMemo(() => {
+    const defaultMods = Object.entries(COLORS).map(([name, color]) => ({
+      _id: `default-${name}`,
+      name,
+      color,
+      type: "default" as const,
+    }));
+    const customMods = dynamicModules.map((m) => ({
+      ...m,
+      type: "custom" as const,
+    }));
+    return [...defaultMods, ...customMods];
+  }, [dynamicModules]);
+
+  const filteredModules = useMemo(() => {
+    return combinedModules.filter((m) => {
+      const matchesSearch = m.name
+        .toLowerCase()
+        .includes(moduleSearch.toLowerCase());
+      const matchesType =
+        moduleTypeFilter === "all" || m.type === moduleTypeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [combinedModules, moduleSearch, moduleTypeFilter]);
+
+  // Logs
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const matchesSearch =
+        log.fileName.toLowerCase().includes(logSearch.toLowerCase()) ||
+        log.uploaderEmail.toLowerCase().includes(logSearch.toLowerCase());
+
+      let matchesDate = true;
+      if (logDateFilter) {
+        const logDate = new Date(log.uploadedAt).toISOString().split("T")[0];
+        matchesDate = logDate === logDateFilter;
+      }
+
+      return matchesSearch && matchesDate;
+    });
+  }, [logs, logSearch, logDateFilter]);
+
   const uploadLogs = useMemo(
-    () => logs.filter((log) => !log.fileName.startsWith("Manual")),
-    [logs],
+    () => filteredLogs.filter((log) => !log.fileName.startsWith("Manual")),
+    [filteredLogs],
   );
+
   const activityLogs = useMemo(
-    () => logs.filter((log) => log.fileName.startsWith("Manual")),
-    [logs],
+    () => filteredLogs.filter((log) => log.fileName.startsWith("Manual")),
+    [filteredLogs],
   );
 
   async function handleEdit(company: any) {
@@ -259,14 +335,13 @@ export default function AdminPage() {
     });
 
     setModuleFeatures(featureMap);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleEditModule(mod: any) {
+    if (mod.type === "default") return; // Cannot edit default modules via this flow
     setEditingModuleId(mod._id);
     setModuleName(mod.name);
     setSelectedModuleColor(mod.color);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function resetModuleForm() {
@@ -513,14 +588,8 @@ export default function AdminPage() {
     };
   };
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase()),
-  );
-
   return (
-    <div className="min-h-screen bg-(--bg) text-(--text-main) p-8 transition-colors duration-300">
+    <div className="h-screen bg-(--bg) text-(--text-main) flex flex-col overflow-hidden transition-colors duration-300 font-sans">
       <Toast
         message={toast.message}
         type={toast.type}
@@ -535,19 +604,19 @@ export default function AdminPage() {
         isDangerous={confirmation.isDangerous}
       />
 
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-orange-500">
-            Kivo Dependency Graph Admin Dashboard
-          </h1>
-          <p className="text-(--text-sub) text-sm mt-1">
-            Manage system resources and access.
-          </p>
+      {/* 1. Navbar */}
+      <header className="shrink-0 h-16 bg-(--bg)/90 backdrop-blur-md border-b border-(--border) px-6 flex items-center justify-between z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+            <Shield className="w-5 h-5" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">Kivo Admin</h1>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3">
           <button
             onClick={toggleTheme}
-            className="w-10 h-10 flex items-center justify-center bg-(--card-bg) border border-(--border) rounded-lg hover:bg-(--border) transition text-(--text-main) shadow-sm"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-(--card-bg) text-(--text-sub) hover:text-(--text-main) transition-colors border border-transparent hover:border-(--border)"
           >
             {isDarkMode ? (
               <Sun className="w-5 h-5" />
@@ -558,20 +627,22 @@ export default function AdminPage() {
 
           <Link
             href="/"
-            className="flex items-center gap-2 bg-(--card-bg) hover:bg-(--border) text-(--text-main) px-4 py-2 rounded-lg transition border border-(--border) shadow-sm"
+            className="flex items-center gap-2 bg-(--card-bg) hover:bg-(--border) text-(--text-main) px-4 py-2 rounded-lg text-sm font-medium border border-(--border) transition-all"
           >
-            <Home className="w-4 h-4" />{" "}
-            <span className="text-sm font-medium">Graph View</span>
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Graph View</span>
           </Link>
+
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-10 h-10 flex items-center justify-center bg-orange-600 text-white rounded-full hover:bg-orange-700 transition shadow-sm ring-2 ring-transparent focus:ring-orange-400"
+              className="w-9 h-9 rounded-full bg-linear-to-tr from-orange-400 to-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
             >
               <User className="w-5 h-5" />
             </button>
+
             {isProfileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-(--card-bg) border border-(--border) rounded-xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute right-0 top-full mt-3 w-64 bg-(--card-bg) border border-(--border) rounded-xl shadow-xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-3 py-2 border-b border-(--border) mb-1">
                   <p className="text-sm font-bold text-(--text-main) truncate">
                     {session?.user?.name || "User"}
@@ -579,13 +650,10 @@ export default function AdminPage() {
                   <p className="text-xs text-(--text-sub) truncate">
                     {session?.user?.email}
                   </p>
-                  <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded uppercase font-bold mt-1 inline-block">
-                    {session?.user?.role || "Admin"}
-                  </span>
                 </div>
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition w-full text-left"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition w-full text-left font-medium"
                 >
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
@@ -593,703 +661,629 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex items-center gap-4 transition-all hover:border-orange-500/30">
-          <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
-            <Building2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-(--text-sub) font-medium">
-              Total Companies
-            </p>
-            <p className="text-2xl font-bold text-(--text-main)">
-              {stats.companyCount}
-            </p>
-          </div>
-        </div>
-        <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex items-center gap-4 transition-all hover:border-orange-500/30">
-          <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-500">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-(--text-sub) font-medium">
-              Registered Users
-            </p>
-            <p className="text-2xl font-bold text-(--text-main)">
-              {stats.userCount}
-            </p>
-          </div>
-        </div>
-        <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex items-center gap-4 transition-all hover:border-orange-500/30">
-          <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
-            <Layers className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-(--text-sub) font-medium">
-              Active Modules
-            </p>
-            <p className="text-2xl font-bold text-(--text-main)">
-              {stats.moduleCount}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-4 mb-6 border-b border-(--border) overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("companies")}
-          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "companies" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
-        >
-          Manage Companies
-        </button>
-        <button
-          onClick={() => setActiveTab("users")}
-          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "users" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
-        >
-          Manage Users
-        </button>
-        <button
-          onClick={() => setActiveTab("modules")}
-          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "modules" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
-        >
-          Manage Modules
-        </button>
-        <button
-          onClick={() => setActiveTab("logs")}
-          className={`pb-2 px-4 text-sm font-bold transition-all whitespace-nowrap ${activeTab === "logs" ? "text-orange-500 border-b-2 border-orange-500" : "text-(--text-sub) hover:text-(--text-main)"}`}
-        >
-          Graph Activity
-        </button>
-      </div>
-
-      {activeTab === "companies" && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 h-full">
-          <div
-            className={`bg-(--card-bg) p-6 rounded-xl border shadow-lg transition-colors flex flex-col h-full overflow-y-auto custom-scrollbar ${editingId ? "border-orange-500/50" : "border-(--border)"}`}
-          >
-            <div className="flex items-center justify-between mb-6 sticky top-0 bg-(--card-bg) z-10 pb-2 border-b border-(--border)">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-500" />
-                <h2 className="text-xl font-semibold text-(--text-main)">
-                  {editingId ? "Edit Company" : "Add New Company"}
-                </h2>
-              </div>
-              {editingId && (
-                <button
-                  onClick={resetForm}
-                  className="text-xs flex items-center gap-1 bg-(--bg) hover:bg-(--border) px-2 py-1 rounded text-(--text-sub) transition"
-                >
-                  <X className="w-3 h-3" /> Cancel
-                </button>
-              )}
+      {/* 2. Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
+        {/* Stats Row */}
+        <div className="shrink-0 grid grid-cols-3 gap-6">
+          <div className="bg-(--card-bg) p-4 rounded-xl border border-(--border) shadow-sm flex items-center gap-4 hover:border-blue-500/30 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600">
+              <Building2 className="w-5 h-5" />
             </div>
+            <div>
+              <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
+                Companies
+              </p>
+              <p className="text-2xl font-bold text-(--text-main)">
+                {stats.companyCount}
+              </p>
+            </div>
+          </div>
+          <div className="bg-(--card-bg) p-4 rounded-xl border border-(--border) shadow-sm flex items-center gap-4 hover:border-purple-500/30 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
+                Users
+              </p>
+              <p className="text-2xl font-bold text-(--text-main)">
+                {stats.userCount}
+              </p>
+            </div>
+          </div>
+          <div className="bg-(--card-bg) p-4 rounded-xl border border-(--border) shadow-sm flex items-center gap-4 hover:border-emerald-500/30 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
+                Modules
+              </p>
+              <p className="text-2xl font-bold text-(--text-main)">
+                {stats.moduleCount}
+              </p>
+            </div>
+          </div>
+        </div>
 
-            <form onSubmit={handleCompanySubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-(--text-sub)">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Company Name Here..."
-                  className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
-                />
-              </div>
+        {/* Tab Selection */}
+        <div className="shrink-0 border-b border-(--border) flex gap-6">
+          {["companies", "users", "modules", "logs"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as Tab)}
+              className={`
+                pb-3 text-sm font-bold capitalize transition-all border-b-2 
+                ${
+                  activeTab === tab
+                    ? "border-orange-500 text-orange-600"
+                    : "border-transparent text-(--text-sub) hover:text-(--text-main) hover:border-(--border)"
+                }
+              `}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold mb-3 text-(--text-sub)">
-                  <LayoutGrid className="w-4 h-4" />
-                  1. Active Modules
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {allAvailableModules.map((mod) => (
-                    <div
-                      key={mod}
-                      onClick={() => toggleModule(mod)}
-                      className={`
-                        cursor-pointer rounded-lg border p-3 flex items-center gap-3 transition-all select-none
-                        ${
-                          formModules.has(mod)
-                            ? "bg-orange-500/10 border-orange-500 shadow-sm"
-                            : "bg-(--bg) border-(--border) hover:border-orange-500/50"
-                        }
-                      `}
+        {/* Tab Content */}
+        <div className="flex-1 overflow-hidden relative rounded-xl border border-(--border) bg-(--card-bg) shadow-lg">
+          {activeTab === "companies" && (
+            <div className="h-full flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-(--border)">
+              <div
+                className={`xl:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${
+                  editingId
+                    ? "bg-orange-50/50 dark:bg-orange-950/30 border-r-2 border-orange-500/20"
+                    : "bg-(--card-bg) border-r border-(--border)"
+                }`}
+              >
+                <div
+                  className={`shrink-0 p-6 border-b flex justify-between items-center transition-colors ${
+                    editingId
+                      ? "bg-orange-100/50 dark:bg-orange-900/40 border-orange-200 dark:border-orange-800"
+                      : "bg-(--card-bg) border-(--border)"
+                  }`}
+                >
+                  <h2 className="font-bold text-lg text-(--text-main)">
+                    {editingId ? "Edit Company" : "New Company"}
+                  </h2>
+                  {editingId && (
+                    <button
+                      onClick={resetForm}
+                      className="text-xs flex items-center gap-1 bg-(--bg) px-2 py-1 rounded-full text-(--text-sub) hover:text-(--text-main)"
                     >
-                      <div
-                        className={`
-                        w-5 h-5 rounded border flex items-center justify-center transition-colors
-                        ${
-                          formModules.has(mod)
-                            ? "bg-orange-500 border-orange-500"
-                            : "border-gray-400 dark:border-gray-600"
-                        }
-                      `}
-                      >
-                        {formModules.has(mod) && (
-                          <Check className="w-3.5 h-3.5 text-white" />
-                        )}
-                      </div>
-                      <span
-                        className={`text-sm font-medium ${
-                          formModules.has(mod)
-                            ? "text-orange-600 dark:text-orange-400"
-                            : "text-(--text-main)"
-                        }`}
-                      >
-                        {mod}
-                      </span>
+                      <X className="w-3 h-3" /> Cancel
+                    </button>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
+                  <form
+                    id="company-form"
+                    onSubmit={handleCompanySubmit}
+                    className="space-y-5"
+                  >
+                    <div>
+                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-1">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        placeholder="Company Name..."
+                        className="w-full px-3 py-2 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 outline-none text-(--text-main)"
+                      />
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
+                        Modules
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {allAvailableModules.map((mod) => (
+                          <div
+                            key={mod}
+                            onClick={() => toggleModule(mod)}
+                            className={`
+                              cursor-pointer rounded-lg border px-3 py-2 flex items-center gap-2 transition-all select-none
+                              ${
+                                formModules.has(mod)
+                                  ? "bg-orange-50 dark:bg-orange-900/10 border-orange-500"
+                                  : "bg-(--bg) border-(--border) hover:border-orange-300"
+                              }
+                            `}
+                          >
+                            <div
+                              className={`w-4 h-4 rounded border flex items-center justify-center ${formModules.has(mod) ? "bg-orange-500 border-orange-500" : "border-slate-400"}`}
+                            >
+                              {formModules.has(mod) && (
+                                <Check className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">{mod}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {Array.from(formModules).some(
+                      (m) => MODULE_FEATURES[m],
+                    ) && (
+                      <div className="pt-2 border-t border-(--border)">
+                        <label className="block text-xs font-bold text-(--text-sub) uppercase mb-3">
+                          Features
+                        </label>
+                        <div className="space-y-3">
+                          {Array.from(formModules).map((mod) => {
+                            const features = MODULE_FEATURES[mod];
+                            if (!features) return null;
+                            const selectedCount =
+                              moduleFeatures[mod]?.size || 0;
+                            return (
+                              <div
+                                key={mod}
+                                className="bg-(--bg) border border-(--border) rounded-lg overflow-hidden"
+                              >
+                                <div className="px-3 py-2 border-b border-(--border) flex justify-between items-center bg-(--card-bg)">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-xs uppercase text-(--text-main)">
+                                      {mod}
+                                    </h4>
+                                    <span className="text-[10px] font-mono text-(--text-sub) bg-(--border) px-1.5 rounded">
+                                      {selectedCount}/{features.length}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAllFeatures(mod)}
+                                    className="text-[10px] font-bold text-orange-600 hover:underline"
+                                  >
+                                    Toggle All
+                                  </button>
+                                </div>
+                                <div className="p-2 grid grid-cols-1 gap-1 max-h-40 overflow-y-auto custom-scrollbar">
+                                  {features.map((feature) => (
+                                    <label
+                                      key={feature}
+                                      className="flex items-center gap-2 p-1.5 rounded hover:bg-(--card-bg) cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          moduleFeatures[mod]?.has(feature) ||
+                                          false
+                                        }
+                                        onChange={() =>
+                                          toggleFeature(mod, feature)
+                                        }
+                                        className="rounded border-slate-400 text-orange-500 focus:ring-orange-500"
+                                      />
+                                      <span className="text-xs text-(--text-main)">
+                                        {feature}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </form>
+                </div>
+                <div className="shrink-0 p-4 border-t border-(--border) bg-(--card-bg)">
+                  <button
+                    form="company-form"
+                    disabled={isSavingCompany}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 shadow-md"
+                  >
+                    {isSavingCompany
+                      ? "Processing..."
+                      : editingId
+                        ? "Update Company"
+                        : "Create Company"}
+                  </button>
                 </div>
               </div>
 
-              {Array.from(formModules).some((m) => MODULE_FEATURES[m]) && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <label className="flex items-center gap-2 text-sm font-semibold mb-3 text-(--text-sub)">
-                    <ListFilter className="w-4 h-4" />
-                    2. Configure Features
-                  </label>
-                  <div className="space-y-4 border-t border-(--border) pt-4">
-                    {Array.from(formModules).map((mod) => {
-                      const features = MODULE_FEATURES[mod];
-                      if (!features) return null;
-
-                      const selectedCount = moduleFeatures[mod]?.size || 0;
-                      const isAllSelected = selectedCount === features.length;
-
-                      return (
-                        <div
-                          key={mod}
-                          className="bg-(--bg) border border-(--border) rounded-xl overflow-hidden shadow-sm"
-                        >
-                          <div className="px-4 py-3 border-b border-(--border) flex justify-between items-center bg-(--card-bg)">
-                            <div className="flex items-center gap-3">
-                              <div className="w-1.5 h-5 bg-orange-500 rounded-full"></div>
-                              <h4 className="font-bold text-sm text-(--text-main)">
-                                {mod} Features
-                              </h4>
-                              <span className="text-[10px] font-mono text-(--text-sub) bg-(--border) px-2 py-0.5 rounded-full">
-                                {selectedCount} / {features.length}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleAllFeatures(mod)}
-                              className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline"
-                            >
-                              {isAllSelected ? "Deselect All" : "Select All"}
-                            </button>
-                          </div>
-
-                          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                            {features.map((feature) => (
-                              <label
-                                key={feature}
-                                className="flex items-start gap-2 cursor-pointer group p-1.5 rounded-lg hover:bg-(--card-bg) transition-colors"
-                              >
-                                <div className="relative flex items-center pt-0.5">
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      moduleFeatures[mod]?.has(feature) || false
-                                    }
-                                    onChange={() => toggleFeature(mod, feature)}
-                                    className="peer appearance-none w-4 h-4 border border-gray-400 dark:border-gray-500 rounded checked:bg-orange-500 checked:border-orange-500 transition-colors"
-                                  />
-                                  <Check className="w-3 h-3 text-white absolute top-0.5 left-0.5 opacity-0 peer-checked:opacity-100 pointer-events-none" />
-                                </div>
-                                <span className="text-sm text-(--text-sub) group-hover:text-(--text-main) transition-colors leading-tight select-none">
-                                  {feature}
+              <div className="xl:w-2/3 flex flex-col h-full">
+                <div className="shrink-0 p-3 border-b border-(--border) flex items-center justify-between bg-(--card-bg)">
+                  <div className="flex items-center gap-2 px-2">
+                    <span className="text-xs font-bold text-(--text-sub) uppercase">
+                      Directory
+                    </span>
+                    <span className="text-xs bg-(--border) px-1.5 rounded text-(--text-main)">
+                      {sortedCompanies.length}
+                    </span>
+                  </div>
+                  <select
+                    value={sortOption}
+                    onChange={(e) =>
+                      setSortOption(e.target.value as SortOption)
+                    }
+                    className="text-xs bg-(--bg) border border-(--border) rounded px-2 py-1 outline-none"
+                  >
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="modules-most">Modules (Most)</option>
+                    <option value="modules-least">Modules (Least)</option>
+                  </select>
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+                  {sortedCompanies.map((company) => (
+                    <div
+                      key={company._id}
+                      className={`
+                        p-4 rounded-xl border flex items-center justify-between group transition-all
+                        ${
+                          editingId === company._id
+                            ? "bg-orange-50 dark:bg-orange-900/10 border-orange-500"
+                            : "bg-(--bg) border-(--border) hover:border-orange-300 dark:hover:border-orange-700"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-slate-500 font-bold text-lg">
+                          {company.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3
+                            className={`font-bold text-sm ${editingId === company._id ? "text-orange-600" : "text-(--text-main)"}`}
+                          >
+                            {company.name}
+                          </h3>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {company.allowedModules
+                              .slice(0, 4)
+                              .map((m: string) => (
+                                <span
+                                  key={m}
+                                  className="text-[10px] bg-(--card-bg) border border-(--border) px-1.5 py-0.5 rounded text-(--text-sub)"
+                                >
+                                  {m}
                                 </span>
-                              </label>
-                            ))}
+                              ))}
+                            {company.allowedModules.length > 4 && (
+                              <span className="text-[10px] text-(--text-sub) px-1">
+                                +{company.allowedModules.length - 4}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <button
-                disabled={isSavingCompany}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
-              >
-                {isSavingCompany
-                  ? editingId
-                    ? "Updating..."
-                    : "Creating..."
-                  : editingId
-                    ? "Update Company"
-                    : "Create Company"}
-              </button>
-            </form>
-          </div>
-
-          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-150">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-(--text-main)">
-                Existing Companies
-              </h2>
-              <div className="flex items-center gap-2">
-                <ArrowUpDown className="w-4 h-4 text-(--text-sub)" />
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value as SortOption)}
-                  className="bg-(--bg) border border-(--border) text-xs text-(--text-main) rounded px-2 py-1 outline-none focus:border-orange-500 cursor-pointer"
-                >
-                  <option value="name-asc">Name (A-Z)</option>
-                  <option value="name-desc">Name (Z-A)</option>
-                  <option value="modules-most">Modules (Most)</option>
-                  <option value="modules-least">Modules (Least)</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
-              {sortedCompanies.map((company) => (
-                <div
-                  key={company._id}
-                  className={`p-4 rounded-lg border flex justify-between items-center group transition-all ${editingId === company._id ? "bg-orange-500/10 border-orange-500/50" : "bg-(--bg) border-(--border) hover:border-gray-500"}`}
-                >
-                  <div>
-                    <h3
-                      className={`font-bold text-lg ${editingId === company._id ? "text-orange-500" : "text-(--text-main)"}`}
-                    >
-                      {company.name}
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {company.allowedModules.slice(0, 4).map((m: string) => (
-                        <span
-                          key={m}
-                          className="text-[10px] bg-(--card-bg) border border-(--border) px-2 py-0.5 rounded text-(--text-sub)"
-                        >
-                          {m}
-                        </span>
-                      ))}
-                      {company.allowedModules.length > 4 && (
-                        <span className="text-[10px] bg-(--card-bg) border border-(--border) px-2 py-0.5 rounded text-(--text-sub)">
-                          +{company.allowedModules.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(company)}
-                      className="text-(--text-sub) hover:text-blue-500 p-2 transition"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => initiateDeleteCompany(company._id)}
-                      className="text-(--text-sub) hover:text-red-500 p-2 transition"
-                    >
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "modules" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-full">
-          <div
-            className={`bg-(--card-bg) p-6 rounded-xl border shadow-lg flex flex-col h-fit transition-colors ${editingModuleId ? "border-orange-500/50" : "border-(--border)"}`}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Palette className="w-5 h-5 text-orange-500" />
-                <h2 className="text-xl font-semibold text-(--text-main)">
-                  {editingModuleId ? "Edit Module" : "Create New Module"}
-                </h2>
-              </div>
-              {editingModuleId && (
-                <button
-                  onClick={resetModuleForm}
-                  className="text-xs flex items-center gap-1 bg-(--bg) hover:bg-(--border) px-2 py-1 rounded text-(--text-sub) transition"
-                >
-                  <X className="w-3 h-3" /> Cancel
-                </button>
-              )}
-            </div>
-
-            <form id="module-form" action={moduleAction} className="space-y-4">
-              <input type="hidden" name="id" value={editingModuleId || ""} />
-              <div>
-                <label className="block text-sm mb-1 text-(--text-sub)">
-                  Module Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={moduleName}
-                  onChange={(e) => setModuleName(e.target.value)}
-                  placeholder="e.g. Finance"
-                  className="w-full p-2.5 rounded-lg bg-(--bg) border border-(--border) focus:border-orange-500 outline-none text-(--text-main) transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-2 text-(--text-sub)">
-                  Choose Module Color
-                </label>
-                <input type="hidden" name="color" value={selectedModuleColor} />
-                <div className="flex flex-wrap gap-2 p-3 bg-(--bg) border border-(--border) rounded-lg mb-2">
-                  {PRESET_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setSelectedModuleColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 ${
-                        selectedModuleColor === color
-                          ? "border-orange-500 scale-110 shadow-lg"
-                          : "border-transparent"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                  <div className="relative w-8 h-8">
-                    <input
-                      type="color"
-                      value={selectedModuleColor}
-                      onChange={(e) => setSelectedModuleColor(e.target.value)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div
-                      className="w-8 h-8 rounded-full border-2 border-dashed border-(--text-sub) flex items-center justify-center text-(--text-sub)"
-                      style={{
-                        backgroundColor: PRESET_COLORS.includes(
-                          selectedModuleColor,
-                        )
-                          ? "transparent"
-                          : selectedModuleColor,
-                      }}
-                    >
-                      {!PRESET_COLORS.includes(selectedModuleColor) ? "" : "+"}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-[10px] text-(--text-sub)">
-                  Selected:{" "}
-                  <span className="font-mono uppercase">
-                    {selectedModuleColor}
-                  </span>
-                </p>
-              </div>
-              <button
-                disabled={isModulePending}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20 mt-4"
-              >
-                {isModulePending
-                  ? editingModuleId
-                    ? "Updating..."
-                    : "Creating..."
-                  : editingModuleId
-                    ? "Update Module"
-                    : "Create Module"}
-              </button>
-            </form>
-          </div>
-
-          <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg flex flex-col h-150">
-            <h2 className="text-xl font-semibold text-(--text-main) mb-6">
-              Existing Modules
-            </h2>
-            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
-              {Object.entries(COLORS).map(([name, color]) => (
-                <div
-                  key={name}
-                  className="p-3 rounded-lg border border-(--border) bg-(--bg) flex justify-between items-center opacity-75"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-6 h-6 rounded-full border border-black/10"
-                      style={{ backgroundColor: color }}
-                    ></div>
-                    <div>
-                      <p className="font-bold text-sm text-(--text-main)">
-                        {name}
-                      </p>
-                      <p className="text-[10px] text-(--text-sub)">
-                        System Default
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {dynamicModules.map((mod) => (
-                <div
-                  key={mod._id}
-                  className={`p-3 rounded-lg border flex justify-between items-center transition-all ${editingModuleId === mod._id ? "bg-orange-500/10 border-orange-500/50" : "bg-(--bg) border-(--border) hover:border-gray-500"}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-6 h-6 rounded-full border border-black/10"
-                      style={{ backgroundColor: mod.color }}
-                    ></div>
-                    <div>
-                      <p
-                        className={`font-bold text-sm ${editingModuleId === mod._id ? "text-orange-500" : "text-(--text-main)"}`}
-                      >
-                        {mod.name}
-                      </p>
-                      <p className="text-[10px] text-(--text-sub)">Custom</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditModule(mod)}
-                      className="text-(--text-sub) hover:text-blue-500 p-2 transition"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => initiateDeleteModule(mod._id, mod.name)}
-                      className="text-(--text-sub) hover:text-red-500 p-2 transition"
-                    >
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      {activeTab === "users" && (
-        <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <h2 className="text-xl font-semibold text-(--text-main)">
-              User Management
-            </h2>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-(--text-sub)" />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-(--bg) border border-(--border) rounded-lg text-sm text-(--text-main) focus:border-orange-500 outline-none w-64 transition-all"
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
-                  <th className="py-3 px-4">User</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Joined</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user._id}
-                    className="border-b border-(--border) hover:bg-(--bg) transition-colors"
-                  >
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-(--text-main)">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-(--text-sub)">{user.email}</p>
-                    </td>
-                    <td className="py-3 px-4">
-                      {user.role === "admin" ? (
-                        <span className="inline-flex items-center gap-1 bg-red-500/10 text-red-500 px-2 py-1 rounded text-xs font-bold border border-red-500/20">
-                          <ShieldAlert className="w-3 h-3" /> Admin
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-500 px-2 py-1 rounded text-xs font-bold border border-blue-500/20">
-                          <Shield className="w-3 h-3" /> User
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-(--text-sub)">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() =>
-                            initiateToggleRole(user._id, user.role)
-                          }
-                          className={`text-xs px-3 py-1.5 rounded font-medium border transition-colors ${user.role === "admin" ? "border-(--border) text-(--text-sub) hover:bg-(--border)" : "border-blue-500/30 text-blue-500 hover:bg-blue-500/10"}`}
+                          onClick={() => handleEdit(company)}
+                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                         >
-                          {user.role === "admin" ? "Demote" : "Promote"}
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => initiateDeleteUser(user._id)}
-                          className="p-1.5 text-(--text-sub) hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                          title="Delete User"
+                          onClick={() => initiateDeleteCompany(company._id)}
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                         >
                           <Trash className="w-4 h-4" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredUsers.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="text-center py-8 text-(--text-sub) italic"
-                    >
-                      No users found matching "{userSearch}"
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "logs" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
-          <div className="md:col-span-1 bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg h-fit">
-            <div className="flex items-center gap-2 mb-4">
-              <UploadCloud className="w-5 h-5 text-orange-500" />
-              <h2 className="text-xl font-semibold text-(--text-main)">
-                Update Graph
-              </h2>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-(--text-sub) mb-6">
-              Upload a new JSON file to update the graph for all users. The
-              latest upload automatically becomes the active graph.
-            </p>
+          )}
 
-            <form
-              ref={uploadFormRef}
-              action={uploadAction}
-              className="space-y-4"
-            >
-              <input
-                type="hidden"
-                name="uploaderEmail"
-                value={session?.user?.email || ""}
-              />
-
-              <div className="border-2 border-dashed border-(--border) rounded-lg p-8 flex flex-col items-center justify-center text-center hover:border-orange-500/50 transition bg-(--bg)/50 relative group">
-                <FileJson
-                  className={`w-8 h-8 mb-2 transition-colors ${selectedFileName ? "text-orange-500" : "text-(--text-sub) group-hover:text-orange-500"}`}
-                />
-                <label className="cursor-pointer inset-0 absolute w-full h-full flex items-center justify-center">
-                  <input
-                    type="file"
-                    name="file"
-                    accept=".json"
-                    required
-                    onChange={(e) =>
-                      setSelectedFileName(e.target.files?.[0]?.name || null)
-                    }
-                    className="opacity-0 w-full h-full cursor-pointer"
-                  />
-                </label>
-                {selectedFileName ? (
-                  <span className="text-orange-500 font-bold break-all px-4">
-                    Selected: {selectedFileName}
-                  </span>
-                ) : (
-                  <span className="text-orange-500 font-bold hover:underline pointer-events-none">
-                    Click to browse
-                  </span>
-                )}
-                <p className="text-xs text-(--text-sub) mt-1 pointer-events-none">
-                  JSON files only
-                </p>
-              </div>
-
-              <button
-                disabled={isUploading}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-orange-500/20"
+          {activeTab === "modules" && (
+            <div className="h-full flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-(--border)">
+              <div
+                className={`md:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${
+                  editingModuleId
+                    ? "bg-pink-50/50 dark:bg-pink-950/30 border-r-2 border-pink-500/20"
+                    : "bg-(--card-bg) border-r border-(--border)"
+                }`}
               >
-                {isUploading
-                  ? "Uploading & Processing..."
-                  : "Upload & Activate"}
-              </button>
-            </form>
-          </div>
-
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
-              <div className="flex items-center gap-2 mb-6">
-                <History className="w-5 h-5 text-(--text-main)" />
-                <h2 className="text-xl font-semibold text-(--text-main)">
-                  File Upload History
-                </h2>
+                <div
+                  className={`shrink-0 p-6 border-b flex justify-between items-center transition-colors ${
+                    editingModuleId
+                      ? "bg-pink-100/50 dark:bg-pink-900/40 border-pink-200 dark:border-pink-800"
+                      : "bg-(--card-bg) border-(--border)"
+                  }`}
+                >
+                  <h2 className="font-bold text-lg text-(--text-main)">
+                    {editingModuleId ? "Edit Module" : "New Module"}
+                  </h2>
+                  {editingModuleId && (
+                    <button
+                      onClick={resetModuleForm}
+                      className="text-xs flex items-center gap-1 bg-(--bg) px-2 py-1 rounded-full text-(--text-sub)"
+                    >
+                      <X className="w-3 h-3" /> Cancel
+                    </button>
+                  )}
+                </div>
+                <div className="p-5 flex-1 overflow-y-auto custom-scrollbar">
+                  <form
+                    id="module-form"
+                    action={moduleAction}
+                    className="space-y-5"
+                  >
+                    <input
+                      type="hidden"
+                      name="id"
+                      value={editingModuleId || ""}
+                    />
+                    <div>
+                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-1">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                        value={moduleName}
+                        onChange={(e) => setModuleName(e.target.value)}
+                        placeholder="e.g. Finance"
+                        className="w-full px-3 py-2 rounded-lg bg-(--bg) border border-(--border) focus:border-pink-500 outline-none text-(--text-main)"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
+                        Color
+                      </label>
+                      <input
+                        type="hidden"
+                        name="color"
+                        value={selectedModuleColor}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {PRESET_COLORS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setSelectedModuleColor(color)}
+                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${selectedModuleColor === color ? "border-white ring-2 ring-pink-500 scale-110" : "border-transparent"}`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                        <div className="relative w-8 h-8 rounded-full border-2 border-dashed border-(--text-sub) flex items-center justify-center">
+                          <input
+                            type="color"
+                            value={selectedModuleColor}
+                            onChange={(e) =>
+                              setSelectedModuleColor(e.target.value)
+                            }
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <PlusCircle className="w-4 h-4 text-(--text-sub)" />
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-(--text-sub)">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: selectedModuleColor }}
+                        />
+                        {selectedModuleColor}
+                      </div>
+                    </div>
+                  </form>
+                </div>
+                <div className="shrink-0 p-4 border-t border-(--border) bg-(--card-bg)">
+                  <button
+                    form="module-form"
+                    disabled={isModulePending}
+                    className="w-full bg-pink-600 hover:bg-pink-700 text-white py-2.5 rounded-lg font-bold transition-all disabled:opacity-50"
+                  >
+                    {isModulePending ? "Saving..." : "Save Module"}
+                  </button>
+                </div>
               </div>
+              <div className="md:w-2/3 flex flex-col h-full">
+                <div className="shrink-0 p-3 border-b border-(--border) bg-(--card-bg) flex items-center justify-between gap-4">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-(--text-sub)" />
+                    <input
+                      type="text"
+                      placeholder="Search modules..."
+                      value={moduleSearch}
+                      onChange={(e) => setModuleSearch(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 w-full bg-(--bg) border border-(--border) rounded-lg text-xs outline-none focus:border-pink-500"
+                    />
+                  </div>
+                  <select
+                    value={moduleTypeFilter}
+                    onChange={(e) => setModuleTypeFilter(e.target.value as any)}
+                    className="text-xs bg-(--bg) border border-(--border) rounded px-2 py-1.5 outline-none"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="default">System Default</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+                  {filteredModules.map((mod) => (
+                    <div
+                      key={mod._id}
+                      className={`
+                        p-3 rounded-xl border flex items-center justify-between transition-all
+                        ${
+                          editingModuleId === mod._id
+                            ? "bg-pink-50 dark:bg-pink-900/10 border-pink-500"
+                            : "bg-(--card-bg) border-(--border) hover:border-pink-300"
+                        }
+                        ${mod.type === "default" ? "opacity-80 bg-(--bg)/50" : ""}
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full border shadow-sm"
+                          style={{ backgroundColor: mod.color }}
+                        />
+                        <div>
+                          <p className="font-bold text-sm text-(--text-main)">
+                            {mod.name}
+                          </p>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${mod.type === "default" ? "bg-(--border) text-(--text-sub)" : "bg-blue-50 dark:bg-blue-900/20 text-blue-600"}`}
+                          >
+                            {mod.type === "default" ? "Default" : "Custom"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        {mod.type === "custom" && (
+                          <>
+                            <button
+                              onClick={() => handleEditModule(mod)}
+                              className="p-2 text-(--text-sub) hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                initiateDeleteModule(mod._id, mod.name)
+                              }
+                              className="p-2 text-(--text-sub) hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {mod.type === "default" && (
+                          <Shield className="w-4 h-4 text-(--text-sub) mr-2" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {filteredModules.length === 0 && (
+                    <p className="text-center text-xs text-(--text-sub) py-8">
+                      No modules match filters
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-              <div className="overflow-x-auto max-h-55 custom-scrollbar relative">
+          {activeTab === "users" && (
+            <div className="h-full flex flex-col">
+              <div className="shrink-0 p-4 border-b border-(--border) flex justify-between items-center bg-(--card-bg) gap-4">
+                <h2 className="font-bold text-lg text-(--text-main)">Users</h2>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-(--text-sub)" />
+                    <input
+                      type="text"
+                      placeholder="Search users..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      className="pl-9 pr-3 py-1.5 bg-(--bg) border border-(--border) rounded-lg text-sm outline-none focus:border-orange-500 w-48 lg:w-64"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Filter className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-(--text-sub) hover:scale-112 transition-transform" />
+                    <select
+                      value={userRoleFilter}
+                      onChange={(e) => setUserRoleFilter(e.target.value as any)}
+                      className="pl-8 pr-3 py-1.5 bg-(--bg) border border-(--border) rounded-lg text-sm outline-none focus:border-orange-500 appearance-none cursor-pointer hover:scale-112 transition-transform"
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="admin">Admins Only</option>
+                      <option value="user">Users Only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-(--card-bg) z-10 shadow-sm">
-                    <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
-                      <th className="py-3 px-4">File Name</th>
-                      <th className="py-3 px-4">Uploaded By</th>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4 text-right">Status</th>
+                  <thead className="bg-(--bg) sticky top-0 z-10 border-b border-(--border)">
+                    <tr>
+                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase">
+                        Profile
+                      </th>
+                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase">
+                        Role
+                      </th>
+                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase">
+                        Joined
+                      </th>
+                      <th className="py-3 px-6 text-xs font-bold text-(--text-sub) uppercase text-right">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm">
-                    {uploadLogs.map((log, index) => {
-                      const display = getLogDisplayData(log.fileName);
-                      const LogIcon = display.icon;
-                      return (
-                        <tr
-                          key={log._id}
-                          className="border-b border-(--border) hover:bg-(--bg) transition-colors"
-                        >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
-                              >
-                                <LogIcon className="w-4 h-4" />
-                              </div>
-                              <p className="font-bold text-(--text-main) text-sm truncate">
-                                {display.details}
+                  <tbody className="divide-y divide-(--border)">
+                    {filteredUsers.map((user) => (
+                      <tr
+                        key={user._id}
+                        className="group hover:bg-(--bg)/50 transition-colors"
+                      >
+                        <td className="py-3 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm text-(--text-main)">
+                                {user.name}
+                              </p>
+                              <p className="text-xs text-(--text-sub)">
+                                {user.email}
                               </p>
                             </div>
-                          </td>
-                          <td className="py-3 px-4 text-(--text-sub)">
-                            {log.uploaderEmail}
-                          </td>
-                          <td className="py-3 px-4 text-(--text-sub)">
-                            {new Date(log.uploadedAt).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            {index === 0 ? (
-                              <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold border border-green-500/20">
-                                <CheckCircle className="w-3 h-3" /> Active
-                              </span>
-                            ) : (
-                              <span className="text-xs text-(--text-sub) italic">
-                                Archived
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {uploadLogs.length === 0 && (
+                          </div>
+                        </td>
+                        <td className="py-3 px-6">
+                          {user.role === "admin" ? (
+                            <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                              <ShieldAlert className="w-3 h-3" /> Admin
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                              <User className="w-3 h-3" /> User
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-6 text-xs text-(--text-sub)">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2 ">
+                            <button
+                              onClick={() =>
+                                initiateToggleRole(user._id, user.role)
+                              }
+                              className={`
+                                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border hover:scale-112
+                                ${
+                                  user.role === "admin"
+                                    ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-900/10 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                                    : "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-400 dark:hover:bg-blue-900/20 hover:scale-105 transition-transform"
+                                }
+                              `}
+                            >
+                              <Shield className="w-3.5 h-3.5" />
+                              {user.role === "admin" ? "Demote" : "Promote"}
+                            </button>
+                            <button
+                              onClick={() => initiateDeleteUser(user._id)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Delete User"
+                            >
+                              <Trash className="w-4 h-4 hover:scale-112 transition-transform" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredUsers.length === 0 && (
                       <tr>
                         <td
                           colSpan={4}
-                          className="text-center py-10 text-(--text-sub) italic"
+                          className="text-center py-8 text-xs text-(--text-sub)"
                         >
-                          No file uploads found.
+                          No users found matching filters
                         </td>
                       </tr>
                     )}
@@ -1297,76 +1291,194 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+          )}
 
-            <div className="bg-(--card-bg) p-6 rounded-xl border border-(--border) shadow-lg">
-              <div className="flex items-center gap-2 mb-6">
-                <Activity className="w-5 h-5 text-(--text-main)" />
-                <h2 className="text-xl font-semibold text-(--text-main)">
-                  Manual Modification History
-                </h2>
+          {activeTab === "logs" && (
+            <div className="h-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-(--border)">
+              {/* Left Column: Upload Form */}
+              <div className="lg:w-1/3 flex flex-col h-full p-6 bg-(--bg)/30">
+                <div className="shrink-0 mb-6">
+                  <h2 className="text-lg font-bold text-(--text-main) flex items-center gap-2">
+                    <UploadCloud className="w-5 h-5" /> Update Graph
+                  </h2>
+                  <p className="text-xs text-(--text-sub) mt-1">
+                    Upload a standardized JSON file.
+                  </p>
+                </div>
+
+                <form
+                  ref={uploadFormRef}
+                  action={uploadAction}
+                  className="flex-1 flex flex-col gap-4"
+                >
+                  <input
+                    type="hidden"
+                    name="uploaderEmail"
+                    value={session?.user?.email || ""}
+                  />
+                  <div className="flex-1 border-2 border-dashed border-(--border) rounded-xl flex flex-col items-center justify-center relative hover:border-orange-500/50 hover:bg-(--card-bg) transition-all">
+                    <FileJson
+                      className={`w-10 h-10 mb-3 ${selectedFileName ? "text-orange-500" : "text-(--text-sub)"}`}
+                    />
+                    <label className="absolute inset-0 cursor-pointer">
+                      <input
+                        type="file"
+                        name="file"
+                        accept=".json"
+                        required
+                        onChange={(e) =>
+                          setSelectedFileName(e.target.files?.[0]?.name || null)
+                        }
+                        className="opacity-0 w-full h-full cursor-pointer"
+                      />
+                    </label>
+                    {selectedFileName ? (
+                      <p className="text-xs font-bold text-orange-600 px-4 text-center break-all">
+                        {selectedFileName}
+                      </p>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-(--text-main)">
+                          Drop JSON
+                        </p>
+                        <p className="text-[10px] text-(--text-sub)">
+                          or click to browse
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    disabled={isUploading || !selectedFileName}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50"
+                  >
+                    {isUploading ? "Processing..." : "Upload & Activate"}
+                  </button>
+                </form>
               </div>
 
-              <div className="overflow-x-auto max-h-55 custom-scrollbar relative">
-                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-(--card-bg) z-10 shadow-sm">
-                    <tr className="border-b border-(--border) text-(--text-sub) text-sm uppercase">
-                      <th className="py-3 px-4">Action</th>
-                      <th className="py-3 px-4">Performed By</th>
-                      <th className="py-3 px-4">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {activityLogs.map((log) => {
-                      const display = getLogDisplayData(log.fileName);
-                      const LogIcon = display.icon;
-                      return (
-                        <tr
-                          key={log._id}
-                          className="border-b border-(--border) hover:bg-(--bg) transition-colors"
-                        >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
-                              >
-                                <LogIcon className="w-4 h-4" />
+              {/* Right Column: Split into Top (Files) and Bottom (Audit) */}
+              <div className="lg:w-2/3 flex flex-col h-full divide-y divide-(--border)">
+                {/* Unified Filters for Logs */}
+                <div className="shrink-0 p-3 bg-(--card-bg) border-b border-(--border) flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-(--text-sub)" />
+                    <input
+                      type="text"
+                      placeholder="Search filename or email..."
+                      value={logSearch}
+                      onChange={(e) => setLogSearch(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 w-full bg-(--bg) border border-(--border) rounded-lg text-xs outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={logDateFilter}
+                      onChange={(e) => setLogDateFilter(e.target.value)}
+                      className="pl-3 pr-2 py-1.5 bg-(--bg) border border-(--border) rounded-lg text-xs outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Top Half: Upload History */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="shrink-0 p-2 bg-(--bg)/30 border-b border-(--border) flex justify-between items-center px-4">
+                    <span className="text-[10px] font-bold text-(--text-sub) uppercase">
+                      Upload History
+                    </span>
+                    <span className="text-[10px] bg-(--card-bg) px-2 py-0.5 rounded text-(--text-sub)">
+                      {uploadLogs.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                    <table className="w-full text-left border-collapse">
+                      <tbody className="divide-y divide-(--border)">
+                        {uploadLogs.map((log) => (
+                          <tr
+                            key={log._id}
+                            className="hover:bg-(--bg)/50 transition-colors group"
+                          >
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/20 text-orange-600 flex items-center justify-center shrink-0">
+                                  <FileUp className="w-4 h-4" />
+                                </div>
+                                <div className="overflow-hidden">
+                                  <p className="text-sm font-bold text-(--text-main) truncate">
+                                    {log.fileName}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-(--text-main) text-sm truncate">
-                                  {display.details}
-                                </p>
-                                <span className="text-[10px] uppercase font-bold text-(--text-sub)">
-                                  {display.type}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-(--text-sub)">
-                            {log.uploaderEmail}
-                          </td>
-                          <td className="py-3 px-4 text-(--text-sub)">
-                            {new Date(log.uploadedAt).toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {activityLogs.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={3}
-                          className="text-center py-10 text-(--text-sub) italic"
-                        >
-                          No manual modifications recorded.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="py-3 px-4 text-xs text-(--text-sub)">
+                              {log.uploaderEmail}
+                            </td>
+                            <td className="py-3 px-4 text-xs text-(--text-sub) text-right">
+                              {new Date(log.uploadedAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Bottom Half: Manual Actions */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="shrink-0 p-2 bg-(--bg)/30 border-b border-(--border) flex justify-between items-center px-4">
+                    <span className="text-[10px] font-bold text-(--text-sub) uppercase">
+                      Manual Audit Trail
+                    </span>
+                    <span className="text-[10px] bg-(--card-bg) px-2 py-0.5 rounded text-(--text-sub)">
+                      {activityLogs.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                    <table className="w-full text-left border-collapse">
+                      <tbody className="divide-y divide-(--border)">
+                        {activityLogs.map((log) => {
+                          const display = getLogDisplayData(log.fileName);
+                          const LogIcon = display.icon;
+                          return (
+                            <tr
+                              key={log._id}
+                              className="hover:bg-(--bg)/50 transition-colors"
+                            >
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${display.style}`}
+                                  >
+                                    <LogIcon className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-(--text-main)">
+                                      {display.details}
+                                    </p>
+                                    <span className="text-[10px] uppercase text-(--text-sub)">
+                                      {display.type}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-xs text-(--text-sub)">
+                                {log.uploaderEmail}
+                              </td>
+                              <td className="py-3 px-4 text-xs text-(--text-sub) text-right">
+                                {new Date(log.uploadedAt).toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }
