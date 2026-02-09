@@ -35,7 +35,6 @@ import {
   Pencil,
   Trash,
   Shield,
-  ShieldAlert,
   Search,
   Sun,
   Moon,
@@ -49,6 +48,8 @@ import {
   Activity,
   Calendar,
   TrendingUp,
+  ArrowUpCircle,
+  ArrowDownCircle,
 } from "lucide-react";
 
 type SortOption = "name-asc" | "name-desc" | "modules-most" | "modules-least";
@@ -99,10 +100,7 @@ export default function AdminPage() {
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | null;
-  }>({
-    message: "",
-    type: null,
-  });
+  }>({ message: "", type: null });
 
   const [confirmation, setConfirmation] = useState<{
     isOpen: boolean;
@@ -122,13 +120,9 @@ export default function AdminPage() {
     success: false,
     message: "",
   });
-
   const [moduleState, moduleAction, isModulePending] = useActionState(
     saveModule,
-    {
-      success: false,
-      message: "",
-    },
+    { success: false, message: "" },
   );
 
   useEffect(() => {
@@ -199,7 +193,7 @@ export default function AdminPage() {
       setLogs(logsData);
       setDynamicModules(modulesData);
     } catch (error) {
-      console.error("Failed to fetch admin data", error);
+      console.error(error);
     }
   }
 
@@ -212,11 +206,13 @@ export default function AdminPage() {
         return sorted.sort((a, b) => b.name.localeCompare(a.name));
       case "modules-most":
         return sorted.sort(
-          (a, b) => b.allowedModules.length - a.allowedModules.length,
+          (a, b) =>
+            (b.allowedModules?.length || 0) - (a.allowedModules?.length || 0),
         );
       case "modules-least":
         return sorted.sort(
-          (a, b) => a.allowedModules.length - b.allowedModules.length,
+          (a, b) =>
+            (a.allowedModules?.length || 0) - (b.allowedModules?.length || 0),
         );
       default:
         return sorted;
@@ -401,51 +397,43 @@ export default function AdminPage() {
   const getLogDisplayData = (fileName: string) => {
     if (fileName.startsWith("Manual Add:"))
       return {
-        type: "Node Added",
+        type: "NODE ADDED",
         details: fileName.replace("Manual Add: ", ""),
         icon: PlusCircle,
         style:
-          "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
       };
     if (fileName.startsWith("Manual Delete:"))
       return {
-        type: "Deleted",
+        type: "DELETED",
         details: fileName.replace("Manual Delete: ", ""),
         icon: Trash2,
         style:
-          "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
+          "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
       };
     if (fileName.startsWith("Manual Connect:"))
       return {
-        type: "Connected",
+        type: "CONNECTED",
         details: fileName.replace("Manual Connect: ", ""),
         icon: LinkIcon,
-        style:
-          "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800",
+        style: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
       };
     if (fileName.startsWith("Manual Disconnect:"))
       return {
-        type: "Disconnected",
+        type: "DISCONNECTED",
         details: fileName.replace("Manual Disconnect: ", ""),
         icon: LinkIcon,
         style:
-          "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+          "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
       };
     return {
-      type: "File Upload",
+      type: "FILE UPLOAD",
       details: fileName,
       icon: FileUp,
       style:
-        "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800",
+        "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
     };
   };
-
-  const navItems = [
-    { id: "companies", label: "Companies", icon: Building2 },
-    { id: "users", label: "Users", icon: Users },
-    { id: "modules", label: "Modules", icon: Layers },
-    { id: "logs", label: "Activity", icon: Activity },
-  ];
 
   return (
     <div className="h-screen w-full bg-(--bg) text-(--text-main) flex overflow-hidden transition-colors duration-300">
@@ -473,10 +461,10 @@ export default function AdminPage() {
           </div>
           <div>
             <h1 className="text-base font-black tracking-tight text-(--text-main)">
-              Admin
+              Admin Dashboard
             </h1>
             <p className="text-[10px] font-bold text-(--text-sub) uppercase tracking-widest">
-              Control
+              Control Panel
             </p>
           </div>
         </div>
@@ -685,63 +673,6 @@ export default function AdminPage() {
                         ))}
                       </div>
                     </div>
-                    {Array.from(formModules).some(
-                      (m) => MODULE_FEATURES[m],
-                    ) && (
-                      <div className="pt-4 border-t border-(--border)">
-                        <label className="block text-[10px] font-bold text-(--text-sub) uppercase mb-2">
-                          Granular Permissions
-                        </label>
-                        <div className="space-y-4">
-                          {Array.from(formModules).map((mod) => {
-                            const features = MODULE_FEATURES[mod];
-                            if (!features) return null;
-                            return (
-                              <div
-                                key={mod}
-                                className="bg-(--input-bg) border border-(--border) rounded-xl overflow-hidden"
-                              >
-                                <div className="px-3 py-2 bg-(--card-hover) border-b border-(--border) flex justify-between items-center">
-                                  <span className="text-[10px] font-black uppercase text-(--text-main)">
-                                    {mod}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAllFeatures(mod)}
-                                    className="text-[10px] font-bold text-orange-600 hover:underline"
-                                  >
-                                    Toggle All
-                                  </button>
-                                </div>
-                                <div className="p-2 space-y-1">
-                                  {features.map((feat) => (
-                                    <label
-                                      key={feat}
-                                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-(--card-hover) cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={
-                                          moduleFeatures[mod]?.has(feat) ||
-                                          false
-                                        }
-                                        onChange={() =>
-                                          toggleFeature(mod, feat)
-                                        }
-                                        className="rounded border-(--border) text-orange-500 focus:ring-orange-500/20"
-                                      />
-                                      <span className="text-xs font-semibold text-(--text-main)">
-                                        {feat}
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </form>
                 </div>
                 <div className="p-4 border-t border-(--border) shrink-0 bg-(--card-bg)">
@@ -810,7 +741,7 @@ export default function AdminPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEdit(company)}
-                            className="p-2 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition-colors"
+                            className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition-colors border border-sky-500/20"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -823,17 +754,11 @@ export default function AdminPage() {
                                 isDangerous: true,
                                 onConfirm: async () => {
                                   const res = await deleteCompany(company._id);
-                                  if (res.success) {
-                                    setToast({
-                                      message: "Company deleted",
-                                      type: "success",
-                                    });
-                                    fetchData();
-                                  }
+                                  if (res.success) fetchData();
                                 },
                               })
                             }
-                            className="p-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
+                            className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors border border-rose-500/20"
                           >
                             <Trash className="w-4 h-4" />
                           </button>
@@ -895,7 +820,7 @@ export default function AdminPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           <span
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${user.role === "admin" ? "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800" : "bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800"}`}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${user.role === "admin" ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" : "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20"}`}
                           >
                             {user.role}
                           </span>
@@ -916,9 +841,13 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className="px-3 py-1.5 rounded-lg bg-(--card-hover) border border-(--border) text-xs font-bold text-(--text-main) hover:bg-(--border) transition-colors flex items-center gap-2"
+                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${user.role === "admin" ? "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"}`}
                             >
-                              <Shield className="w-3.5 h-3.5" />
+                              {user.role === "admin" ? (
+                                <ArrowDownCircle className="w-3.5 h-3.5" />
+                              ) : (
+                                <ArrowUpCircle className="w-3.5 h-3.5" />
+                              )}
                               {user.role === "admin" ? "Demote" : "Promote"}
                             </button>
                             <button
@@ -934,7 +863,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
+                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
@@ -1008,26 +937,6 @@ export default function AdminPage() {
                             style={{ backgroundColor: c }}
                           />
                         ))}
-                        <div className="relative w-10 h-10 rounded-xl border-2 border-dashed border-(--border) flex items-center justify-center hover:bg-(--input-bg) transition-colors">
-                          <input
-                            type="color"
-                            value={selectedModuleColor}
-                            onChange={(e) =>
-                              setSelectedModuleColor(e.target.value)
-                            }
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                          />
-                          <PlusCircle className="w-5 h-5 text-(--text-sub)" />
-                        </div>
-                      </div>
-                      <div className="mt-4 p-3 rounded-xl bg-(--bg) border border-(--border) flex items-center gap-3">
-                        <div
-                          className="w-8 h-8 rounded-lg shadow-sm"
-                          style={{ backgroundColor: selectedModuleColor }}
-                        />
-                        <span className="text-xs font-mono font-bold text-(--text-main) uppercase">
-                          {selectedModuleColor}
-                        </span>
                       </div>
                     </div>
                   </form>
@@ -1080,8 +989,10 @@ export default function AdminPage() {
                             <p className="font-bold text-sm text-(--text-main)">
                               {mod.name}
                             </p>
-                            <span className="text-[10px] font-black uppercase text-(--text-sub) tracking-wide">
-                              {mod.type === "default" ? "System" : "Custom"}
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${mod.type === "default" ? "bg-slate-500/10 text-slate-600 border-slate-500/20" : "bg-purple-500/10 text-purple-600 border-purple-500/20"}`}
+                            >
+                              {mod.type}
                             </span>
                           </div>
                         </div>
@@ -1089,7 +1000,7 @@ export default function AdminPage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditModule(mod)}
-                              className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors"
+                              className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors border border-purple-500/20"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -1106,7 +1017,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className="p-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
+                              className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
@@ -1121,19 +1032,19 @@ export default function AdminPage() {
           )}
 
           {activeTab === "logs" && (
-            <div className="flex-1 flex divide-x divide-(--border) overflow-hidden">
-              <div className="w-1/3 flex flex-col p-8 bg-(--card-hover) overflow-y-auto custom-scrollbar">
-                <div className="mb-8">
+            <div className="flex-1 flex overflow-hidden">
+              <div className="w-[30%] flex flex-col p-6 bg-(--card-hover) border-r border-(--border)">
+                <div className="mb-6">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                       <UploadCloud className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
-                    <h3 className="text-xl font-black text-(--text-main)">
+                    <h3 className="text-lg font-black text-(--text-main)">
                       System Update
                     </h3>
                   </div>
-                  <p className="text-xs font-bold text-(--text-sub) uppercase tracking-wide">
-                    Deploy New Configuration
+                  <p className="text-[10px] font-bold text-(--text-sub) uppercase tracking-widest">
+                    Deploy JSON Configuration
                   </p>
                 </div>
                 <form
@@ -1146,9 +1057,9 @@ export default function AdminPage() {
                     name="uploaderEmail"
                     value={session?.user?.email || ""}
                   />
-                  <div className="flex-1 min-h-75 border-2 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-emerald-500 hover:bg-emerald-50/10 transition-all group bg-(--card-bg)">
+                  <div className="flex-1 min-h-50px border-2 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group bg-(--card-bg)">
                     <FileJson
-                      className={`w-12 h-12 mb-4 transition-all ${selectedFileName ? "text-emerald-500" : "text-(--text-sub) group-hover:text-emerald-500 group-hover:scale-110"}`}
+                      className={`w-12 h-12 mb-4 transition-all ${selectedFileName ? "text-emerald-500 scale-110" : "text-(--text-sub) group-hover:text-emerald-500"}`}
                     />
                     <label className="absolute inset-0 cursor-pointer w-full h-full z-10">
                       <input
@@ -1162,36 +1073,38 @@ export default function AdminPage() {
                         className="opacity-0 w-full h-full cursor-pointer"
                       />
                     </label>
-                    {selectedFileName ? (
-                      <div className="text-center px-4 z-0">
-                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 break-all">
-                          {selectedFileName}
-                        </p>
-                        <p className="text-xs text-emerald-500 mt-1 font-bold">
-                          Ready to deploy
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center z-0">
-                        <p className="text-sm font-bold text-(--text-main)">
-                          Drop Json Here
-                        </p>
-                        <p className="text-xs text-(--text-sub) mt-1">
-                          or click to browse
-                        </p>
-                      </div>
-                    )}
+                    <div className="text-center px-4">
+                      {selectedFileName ? (
+                        <>
+                          <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 break-all">
+                            {selectedFileName}
+                          </p>
+                          <p className="text-[10px] text-emerald-500 mt-1 font-bold">
+                            Ready for deployment
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-bold text-(--text-main)">
+                            Click or drag JSON
+                          </p>
+                          <p className="text-[10px] text-(--text-sub) mt-1">
+                            Updates graph structure
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <button
                     disabled={isUploading || !selectedFileName}
-                    className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-600 hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                    className="w-full bg-emerald-500 text-white py-3.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                   >
                     {isUploading ? (
                       "Deploying..."
                     ) : (
                       <>
-                        <Check className="w-5 h-5" strokeWidth={3} />
-                        Deploy Graph
+                        <Check className="w-4 h-4" strokeWidth={3} />
+                        Apply Changes
                       </>
                     )}
                   </button>
@@ -1204,106 +1117,137 @@ export default function AdminPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--text-sub)" />
                     <input
                       type="text"
-                      placeholder="Filter system logs..."
+                      placeholder="Search logs..."
                       value={logSearch}
                       onChange={(e) => setLogSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) focus:ring-2 focus:ring-emerald-500/20 outline-none"
                     />
                   </div>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--text-sub) pointer-events-none" />
-                    <input
-                      type="date"
-                      value={logDateFilter}
-                      onChange={(e) => setLogDateFilter(e.target.value)}
-                      className="pl-9 pr-3 py-2.5 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) outline-none focus:border-emerald-500"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    value={logDateFilter}
+                    onChange={(e) => setLogDateFilter(e.target.value)}
+                    className="px-4 py-2 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) outline-none"
+                  />
                 </div>
 
-                <div className="flex-1 flex divide-x divide-(--border) overflow-hidden">
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-3 bg-(--card-hover) border-b border-(--border) flex justify-between items-center shrink-0">
+                <div className="flex-1 flex flex-col divide-y divide-(--border) overflow-hidden">
+                  <div className="h-1/2 flex flex-col overflow-hidden">
+                    <div className="px-6 py-3 bg-(--card-hover) border-b border-(--border) flex justify-between items-center shrink-0">
                       <span className="text-[10px] font-black uppercase text-(--text-sub) tracking-widest">
-                        File Uploads
+                        File Upload History
                       </span>
-                      <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">
                         {uploadLogs.length}
                       </span>
                     </div>
-                    <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-3">
-                      {uploadLogs.map((log) => (
-                        <div
-                          key={log._id}
-                          className="p-4 rounded-xl border border-(--border) bg-(--card-bg) flex items-start gap-4 hover:border-violet-300 transition-colors"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0">
-                            <FileUp className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-(--text-main) truncate">
-                              {log.fileName}
-                            </p>
-                            <p className="text-xs text-(--text-sub) mt-0.5">
-                              {log.uploaderEmail}
-                            </p>
-                            <p className="text-[10px] font-bold text-(--text-sub) mt-2 uppercase">
-                              {new Date(log.uploadedAt).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex-1 overflow-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 bg-(--card-bg) border-b border-(--border) z-10">
+                          <tr>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              File Name
+                            </th>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              User
+                            </th>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              Timestamp
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-(--border)">
+                          {uploadLogs.map((log) => (
+                            <tr
+                              key={log._id}
+                              className="hover:bg-(--card-hover)/50"
+                            >
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-600 border border-violet-500/20">
+                                    <FileUp className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-xs font-bold text-(--text-main)">
+                                    {log.fileName}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-xs font-medium text-(--text-sub)">
+                                {log.uploaderEmail}
+                              </td>
+                              <td className="px-6 py-4 text-xs text-(--text-sub)">
+                                {new Date(log.uploadedAt).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-3 bg-(--card-hover) border-b border-(--border) flex justify-between items-center shrink-0">
+                  <div className="h-1/2 flex flex-col overflow-hidden">
+                    <div className="px-6 py-3 bg-(--card-hover) border-b border-(--border) flex justify-between items-center shrink-0">
                       <span className="text-[10px] font-black uppercase text-(--text-sub) tracking-widest">
                         Manual Actions
                       </span>
-                      <span className="text-[10px] font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold bg-sky-500/10 text-sky-600 px-2 py-0.5 rounded-full">
                         {activityLogs.length}
                       </span>
                     </div>
-                    <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
-                      {activityLogs.map((log) => {
-                        const display = getLogDisplayData(log.fileName);
-                        const Icon = display.icon;
-                        return (
-                          <div
-                            key={log._id}
-                            className="relative pl-6 pb-2 last:pb-0"
-                          >
-                            <div className="absolute left-0 top-2 bottom-0 w-px bg-(--border) last:hidden"></div>
-                            <div className="flex gap-3">
-                              <div
-                                className={`relative z-10 w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${display.style}`}
+                    <div className="flex-1 overflow-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 bg-(--card-bg) border-b border-(--border) z-10">
+                          <tr>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              Action Type
+                            </th>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              Details
+                            </th>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              User
+                            </th>
+                            <th className="px-6 py-3 text-[10px] font-black uppercase text-(--text-sub)">
+                              Time
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-(--border)">
+                          {activityLogs.map((log) => {
+                            const display = getLogDisplayData(log.fileName);
+                            const Icon = display.icon;
+                            return (
+                              <tr
+                                key={log._id}
+                                className="hover:bg-(--card-hover)/50"
                               >
-                                <Icon className="w-4 h-4" strokeWidth={2.5} />
-                              </div>
-                              <div className="flex-1 p-3 rounded-xl border border-(--border) bg-(--card-bg) hover:shadow-sm transition-shadow">
-                                <p className="font-bold text-xs text-(--text-main)">
-                                  {display.details}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-[10px] font-bold uppercase text-(--text-sub)">
+                                <td className="px-6 py-4">
+                                  <div
+                                    className={`inline-flex items-center gap-2 px-2 py-1 rounded-md border text-[9px] font-black tracking-widest ${display.style}`}
+                                  >
+                                    <Icon
+                                      className="w-3 h-3"
+                                      strokeWidth={2.5}
+                                    />
                                     {display.type}
-                                  </span>
-                                  <span className="w-1 h-1 rounded-full bg-(--border)"></span>
-                                  <span className="text-[10px] text-(--text-sub)">
-                                    {log.uploaderEmail}
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-(--text-sub) mt-1.5 text-right">
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-xs font-bold text-(--text-main)">
+                                  {display.details}
+                                </td>
+                                <td className="px-6 py-4 text-xs font-medium text-(--text-sub)">
+                                  {log.uploaderEmail}
+                                </td>
+                                <td className="px-6 py-4 text-xs text-(--text-sub)">
                                   {new Date(
                                     log.uploadedAt,
                                   ).toLocaleTimeString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -1315,3 +1259,10 @@ export default function AdminPage() {
     </div>
   );
 }
+
+const navItems = [
+  { id: "companies", label: "Companies", icon: Building2 },
+  { id: "users", label: "Users", icon: Users },
+  { id: "modules", label: "Modules", icon: Layers },
+  { id: "logs", label: "Activity Log", icon: Activity },
+];
