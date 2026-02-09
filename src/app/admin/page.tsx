@@ -502,7 +502,7 @@ export default function AdminPage() {
         details: fileName.replace("Manual Add: ", ""),
         icon: PlusCircle,
         style:
-          "text-green-100 bg-green-50 border-green-100 dark:bg-green-500 dark:text-green-100",
+          "bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-200 border-green-200 dark:border-green-800/50",
       };
     if (fileName.startsWith("Manual Delete:"))
       return {
@@ -510,7 +510,7 @@ export default function AdminPage() {
         details: fileName.replace("Manual Delete: ", ""),
         icon: Trash2,
         style:
-          "text-red-100 bg-red-50 border-red-100 dark:bg-red-500 dark:text-red-100",
+          "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-200 border-red-200 dark:border-red-800/50",
       };
     if (fileName.startsWith("Manual Connect:"))
       return {
@@ -518,7 +518,7 @@ export default function AdminPage() {
         details: fileName.replace("Manual Connect: ", ""),
         icon: LinkIcon,
         style:
-          "text-blue-100 bg-blue-50 border-blue-100 dark:bg-blue-500 dark:text-blue-100",
+          "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-800/50",
       };
     if (fileName.startsWith("Manual Disconnect:"))
       return {
@@ -526,14 +526,14 @@ export default function AdminPage() {
         details: fileName.replace("Manual Disconnect: ", ""),
         icon: LinkIcon,
         style:
-          "text-red-100 bg-red-50 border-red-100 dark:bg-red-500 dark:text-red-100",
+          "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-200 border-red-200 dark:border-red-800/50",
       };
     return {
       type: "File Upload",
       details: fileName,
       icon: FileUp,
       style:
-        "w-10 h-10 rounded-xl bg-orange-900 dark:bg-orange-400 text-orange-50 flex items-center justify-center shrink border border-orange-50 dark:border-orange-50",
+        "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-200 border-orange-200 dark:border-orange-800/50",
     };
   };
 
@@ -565,29 +565,29 @@ export default function AdminPage() {
           <div className="w-8 h-8 rounded-lg bg-(--primary) flex items-center justify-center text-white shadow-lg shadow-(--primary)/20">
             <Shield className="w-5 h-5" />
           </div>
-          <span className="font-bold text-lg tracking-tight">
+          <span className="font-semibold text-base tracking-tight text-(--text-main)">
             Admin Dashboard
           </span>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as Tab)}
-              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group overflow-hidden ${
+              className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group overflow-hidden ${
                 activeTab === item.id
-                  ? "bg-(--primary-subtle) text-(--primary)"
+                  ? "bg-(--primary-subtle) text-(--primary) shadow-sm"
                   : "text-(--text-sub) hover:bg-(--card-hover) hover:text-(--text-main)"
               }`}
             >
               {activeTab === item.id && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-(--primary) rounded-r-md shadow-[0_0_8px_var(--primary)]" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-(--primary) rounded-r-full" />
               )}
               <item.icon
-                className={`w-5 h-5 transition-colors ${activeTab === item.id ? "text-(--primary)" : "text-(--text-sub) group-hover:text-(--text-main)"}`}
+                className={`w-4.5 h-4.5 transition-all duration-200 ${activeTab === item.id ? "text-(--primary)" : "text-(--text-sub) group-hover:text-(--text-main)"}`}
               />
-              <span className="text-sm font-semibold">{item.label}</span>
+              <span className="text-sm font-medium">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -603,31 +603,31 @@ export default function AdminPage() {
 
           <button
             onClick={toggleTheme}
-            className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) text-(--text-sub) hover:text-(--text-main) hover:border-(--primary)/50 transition-all duration-300 overflow-hidden group"
+            className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) text-(--text-sub) hover:text-(--text-main) hover:border-(--primary)/60 transition-all duration-200 overflow-hidden group"
           >
             <div className="relative z-10 flex items-center gap-3">
               {isDarkMode ? (
-                <Moon className="w-5 h-5 text-(--accent-blue)" />
+                <Moon className="w-4.5 h-4.5 text-(--accent-blue)" />
               ) : (
-                <Sun className="w-5 h-5 text-amber-500" />
+                <Sun className="w-4.5 h-4.5 text-amber-500" />
               )}
-              <span className="text-sm font-semibold">
+              <span className="text-sm font-medium">
                 {isDarkMode ? "Dark Mode" : "Light Mode"}
               </span>
             </div>
-            <div className="absolute inset-0 bg-linear-to-r from-(--primary)/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+            <div className="absolute inset-0 bg-linear-to-r from-(--primary)/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-200" />
           </button>
 
           <div className="relative pt-2" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) hover:border-(--primary)/50 transition-all"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-(--bg) border border-(--border) hover:border-(--primary)/60 transition-all duration-200"
             >
-              <div className="w-8 h-8 rounded-full bg-linear-to-tr from-orange-400 to-red-500 text-white flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-full bg-linear-to-tr from-orange-400 to-red-500 text-white flex items-center justify-center shrink-0 shadow-sm">
                 <User className="w-4 h-4" />
               </div>
               <div className="flex-1 text-left overflow-hidden">
-                <p className="text-xs font-bold truncate">
+                <p className="text-xs font-semibold truncate">
                   {session?.user?.name || "Admin"}
                 </p>
                 <p className="text-[10px] text-(--text-sub) truncate">
@@ -639,7 +639,7 @@ export default function AdminPage() {
               <div className="absolute bottom-full left-0 mb-2 w-full bg-(--card-bg) border border-(--border) rounded-xl shadow-xl p-1 z-50 animate-in slide-in-from-bottom-2 duration-200">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-(--danger) hover:bg-(--danger-bg) rounded-lg transition w-full text-left font-bold"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-(--danger) hover:bg-(--danger-bg) rounded-lg transition-all duration-200 w-full text-left font-semibold"
                 >
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
@@ -651,57 +651,57 @@ export default function AdminPage() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 border-b border-(--border) bg-(--card-bg) flex items-center justify-between px-8 shrink-0">
-          <h2 className="text-xl font-bold capitalize text-(--text-main)">
+          <h2 className="text-lg font-semibold capitalize text-(--text-main) tracking-tight">
             {activeTab}
           </h2>
         </header>
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="p-8 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-            <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--primary) transition-all duration-300">
-              <div className="absolute inset-0 bg-linear-to-br from-(--primary)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative overflow-hidden bg-(--card-bg) p-6 rounded-2xl border border-(--border) shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-none group hover:border-(--primary) transition-all duration-200">
+              <div className="absolute inset-0 bg-linear-to-br from-(--primary)/6 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               <div className="relative z-10 flex items-center gap-5">
-                <div className="w-12 h-12 rounded-xl bg-(--primary-subtle) flex items-center justify-center text-(--primary) group-hover:scale-110 transition-transform">
-                  <Building2 className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-xl bg-(--primary)/10 dark:bg-(--primary)/20 flex items-center justify-center text-(--primary) group-hover:scale-110 transition-transform duration-200">
+                  <Building2 className="w-5.5 h-5.5" />
                 </div>
                 <div>
-                  <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                  <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
                     Companies
                   </p>
-                  <p className="text-3xl font-black text-(--text-main)">
+                  <p className="text-3xl font-bold text-(--text-main) mt-1">
                     {stats.companyCount}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--accent-blue) transition-all duration-300">
-              <div className="absolute inset-0 bg-linear-to-br from-(--accent-blue)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative overflow-hidden bg-(--card-bg) p-6 rounded-2xl border border-(--border) shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-none group hover:border-(--accent-blue) transition-all duration-200">
+              <div className="absolute inset-0 bg-linear-to-br from-(--accent-blue)/6 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               <div className="relative z-10 flex items-center gap-5">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-(--accent-blue) group-hover:scale-110 transition-transform">
-                  <Users className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-(--accent-blue) group-hover:scale-110 transition-transform duration-200">
+                  <Users className="w-5.5 h-5.5" />
                 </div>
                 <div>
-                  <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                  <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
                     Users
                   </p>
-                  <p className="text-3xl font-black text-(--text-main)">
+                  <p className="text-3xl font-bold text-(--text-main) mt-1">
                     {stats.userCount}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden bg-(--card-bg) p-5 rounded-2xl border border-(--border) shadow-sm dark:shadow-none group hover:border-(--accent-purple) transition-all duration-300">
-              <div className="absolute inset-0 bg-linear-to-br from-(--accent-purple)/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative overflow-hidden bg-(--card-bg) p-6 rounded-2xl border border-(--border) shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-none group hover:border-(--accent-purple) transition-all duration-200">
+              <div className="absolute inset-0 bg-linear-to-br from-(--accent-purple)/6 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               <div className="relative z-10 flex items-center gap-5">
-                <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-(--accent-purple) group-hover:scale-110 transition-transform">
-                  <Layers className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center text-(--accent-purple) group-hover:scale-110 transition-transform duration-200">
+                  <Layers className="w-5.5 h-5.5" />
                 </div>
                 <div>
-                  <p className="text-xs text-(--text-sub) font-bold uppercase tracking-widest">
+                  <p className="text-xs text-(--text-sub) font-semibold uppercase tracking-wider">
                     Modules
                   </p>
-                  <p className="text-3xl font-black text-(--text-main)">
+                  <p className="text-3xl font-bold text-(--text-main) mt-1">
                     {stats.moduleCount}
                   </p>
                 </div>
@@ -710,20 +710,20 @@ export default function AdminPage() {
           </div>
 
           <div className="flex-1 px-8 pb-8 min-h-0">
-            <div className="h-full bg-(--card-bg) rounded-2xl border border-(--border) shadow-xl overflow-hidden flex flex-col">
+            <div className="h-full bg-(--card-bg) rounded-3xl border border-(--border) shadow-lg hover:shadow-xl dark:shadow-md overflow-hidden flex flex-col transition-shadow duration-200">
               {activeTab === "companies" && (
                 <div className="h-full flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-(--border)">
                   <div
-                    className={`xl:w-1/3 flex flex-col h-full transition-all duration-300 relative z-10 ${editingId ? "bg-(--primary-subtle)" : "bg-(--card-bg)"}`}
+                    className={`xl:w-1/3 flex flex-col h-full transition-all duration-200 relative z-10 ${editingId ? "bg-(--primary-subtle)" : "bg-(--card-bg)"}`}
                   >
                     <div className="p-6 border-b border-(--border) flex justify-between items-center shrink-0">
-                      <h3 className="font-bold text-lg text-(--text-main)">
+                      <h3 className="font-semibold text-lg text-(--text-main)">
                         {editingId ? "Edit Company" : "New Company"}
                       </h3>
                       {editingId && (
                         <button
                           onClick={resetForm}
-                          className="text-xs font-bold text-(--primary) hover:underline"
+                          className="text-xs font-semibold text-(--primary) hover:text-(--primary)/80 transition-colors duration-200"
                         >
                           Cancel
                         </button>
@@ -736,7 +736,7 @@ export default function AdminPage() {
                         className="space-y-6"
                       >
                         <div>
-                          <label className="block text-xs font-bold text-(--text-sub) uppercase mb-2">
+                          <label className="block text-xs font-semibold text-(--text-sub) uppercase mb-2 tracking-wider">
                             Company Name
                           </label>
                           <input
@@ -745,30 +745,34 @@ export default function AdminPage() {
                             value={formName}
                             onChange={(e) => setFormName(e.target.value)}
                             placeholder="e.g. Acme Corp"
-                            className="w-full px-4 py-2.5 rounded-xl bg-(--input-bg) border border-(--border) focus:border-(--primary) focus:ring-4 focus:ring-(--primary)/10 outline-none text-(--text-main) placeholder:text-(--text-sub) transition-all"
+                            className="w-full px-4 py-2.5 rounded-lg bg-(--input-bg) border border-(--border) focus:border-(--primary) focus:ring-2 focus:ring-(--primary)/20 outline-none text-(--text-main) placeholder:text-(--text-sub) transition-all duration-200"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-(--text-sub) uppercase mb-3">
+                          <label className="block text-xs font-semibold text-(--text-sub) uppercase mb-3 tracking-wider">
                             Allowed Modules
                           </label>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-2.5">
                             {allAvailableModules.map((mod) => (
                               <div
                                 key={mod}
                                 onClick={() => toggleModule(mod)}
-                                className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-all select-none ${formModules.has(mod) ? "bg-(--primary) text-(--primary-fg) border-(--primary)" : "bg-(--bg) border-(--border) hover:border-(--primary)/50"}`}
+                                className={`cursor-pointer rounded-lg border px-3 py-2.5 flex items-center gap-3 transition-all duration-200 select-none ${
+                                  formModules.has(mod)
+                                    ? "bg-(--primary) text-white border-(--primary) shadow-md shadow-(--primary)/20"
+                                    : "bg-(--bg) border-(--border) hover:border-(--primary)/50 hover:bg-(--bg)/80"
+                                }`}
                               >
                                 <div
-                                  className={`w-4 h-4 rounded-md border flex items-center justify-center ${formModules.has(mod) ? "bg-white text-(--primary) border-white" : "bg-white/50 border-slate-300"}`}
+                                  className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all duration-200 shrink-0 ${
+                                    formModules.has(mod)
+                                      ? "bg-white border-white"
+                                      : "bg-white/50 border-slate-300"
+                                  }`}
                                 >
-                                  {formModules.has(mod) && (
-                                    <Check className="w-3 h-3" />
-                                  )}
+                                  {formModules.has(mod) && <Check className="w-3 h-3 text-(--primary)" />}
                                 </div>
-                                <span className="text-xs font-bold truncate">
-                                  {mod}
-                                </span>
+                                <span className="text-xs font-semibold truncate">{mod}</span>
                               </div>
                             ))}
                           </div>
@@ -777,49 +781,43 @@ export default function AdminPage() {
                           (m) => MODULE_FEATURES[m],
                         ) && (
                           <div className="pt-4 border-t border-(--border)">
-                            <label className="block text-xs font-bold text-(--text-sub) uppercase mb-4">
+                            <label className="block text-xs font-semibold text-(--text-sub) uppercase mb-4 tracking-wider">
                               Granular Permissions
                             </label>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                               {Array.from(formModules).map((mod) => {
                                 const features = MODULE_FEATURES[mod];
                                 if (!features) return null;
                                 return (
                                   <div
                                     key={mod}
-                                    className="bg-(--bg) border border-(--border) rounded-xl overflow-hidden"
+                                    className="bg-(--bg)/50 border border-(--border) rounded-lg overflow-hidden hover:border-(--border) transition-colors duration-200"
                                   >
-                                    <div className="px-4 py-2 bg-(--card-bg) border-b border-(--border) flex justify-between items-center">
-                                      <span className="text-[10px] font-black uppercase text-(--primary)">
+                                    <div className="px-4 py-3 bg-(--card-bg) border-b border-(--border)/50 flex justify-between items-center">
+                                      <span className="text-xs font-semibold uppercase text-(--primary) tracking-wider">
                                         {mod}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => toggleAllFeatures(mod)}
-                                        className="text-[10px] font-bold text-(--text-sub) hover:text-(--primary)"
+                                        className="text-xs font-semibold text-(--text-sub) hover:text-(--primary) transition-colors duration-200"
                                       >
                                         Toggle All
                                       </button>
                                     </div>
-                                    <div className="p-3 grid grid-cols-1 gap-1">
+                                    <div className="p-3 space-y-1.5">
                                       {features.map((feature) => (
                                         <label
                                           key={feature}
-                                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-(--card-bg) cursor-pointer group"
+                                          className="flex items-center gap-3 p-2.5 rounded-md hover:bg-(--card-bg) cursor-pointer group transition-colors duration-200"
                                         >
                                           <input
                                             type="checkbox"
-                                            checked={
-                                              moduleFeatures[mod]?.has(
-                                                feature,
-                                              ) || false
-                                            }
-                                            onChange={() =>
-                                              toggleFeature(mod, feature)
-                                            }
-                                            className="rounded-md border-slate-300 text-(--primary) focus:ring-(--primary) w-4 h-4"
+                                            checked={moduleFeatures[mod]?.has(feature) || false}
+                                            onChange={() => toggleFeature(mod, feature)}
+                                            className="rounded-md border-slate-300 text-(--primary) focus:ring-2 focus:ring-(--primary)/30 w-4 h-4 cursor-pointer transition-all"
                                           />
-                                          <span className="text-xs text-(--text-main) font-medium group-hover:translate-x-0.5 transition-transform">
+                                          <span className="text-xs text-(--text-main) font-medium group-hover:text-(--primary) transition-colors duration-200">
                                             {feature}
                                           </span>
                                         </label>
@@ -837,59 +835,51 @@ export default function AdminPage() {
                       <button
                         form="company-form"
                         disabled={isSavingCompany}
-                        className="w-full bg-(--primary) hover:brightness-110 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-(--primary)/20 active:scale-[0.98]"
+                        className="w-full bg-(--primary) hover:bg-(--primary)/90 text-white py-2.5 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-(--primary)/20 active:scale-[0.98]"
                       >
-                        {isSavingCompany
-                          ? "Saving Changes..."
-                          : editingId
-                            ? "Update Company Info"
-                            : "Register New Company"}
+                        {isSavingCompany ? "Saving Changes..." : editingId ? "Update Company Info" : "Register New Company"}
                       </button>
                     </div>
                   </div>
                   <div className="xl:w-2/3 flex flex-col h-full bg-(--bg)/20">
                     <div className="p-4 border-b border-(--border) bg-(--card-bg)/50 backdrop-blur-md flex items-center justify-between shrink-0">
-                      <span className="text-xs font-bold text-(--text-sub) uppercase px-4">
+                      <span className="text-xs font-semibold text-(--text-sub) uppercase px-4 tracking-wider">
                         Registry ({sortedCompanies.length})
                       </span>
                       <select
                         value={sortOption}
-                        onChange={(e) =>
-                          setSortOption(e.target.value as SortOption)
-                        }
-                        className="text-xs font-bold bg-(--card-bg) border border-(--border) rounded-lg px-3 py-1.5 outline-none focus:border-(--primary)"
+                        onChange={(e) => setSortOption(e.target.value as SortOption)}
+                        className="text-xs font-semibold bg-(--card-bg) border border-(--border) rounded-lg px-3 py-1.5 outline-none focus:border-(--primary) focus:ring-2 focus:ring-(--primary)/20 cursor-pointer transition-all duration-200"
                       >
                         <option value="name-asc">Name: A to Z</option>
                         <option value="name-desc">Name: Z to A</option>
-                        <option value="modules-most">
-                          Modules: Most First
-                        </option>
-                        <option value="modules-least">
-                          Modules: Least First
-                        </option>
+                        <option value="modules-most">Modules: Most First</option>
+                        <option value="modules-least">Modules: Least First</option>
                       </select>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-2.5 custom-scrollbar">
                       {sortedCompanies.map((company) => (
                         <div
                           key={company._id}
-                          className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${editingId === company._id ? "bg-(--primary-subtle) border-(--primary) ring-1 ring-(--primary)" : "bg-(--card-bg) border-(--border) hover:border-(--primary)/30 hover:shadow-md"}`}
+                          className={`p-4 rounded-lg border flex items-center justify-between group transition-all duration-200 ${
+                            editingId === company._id
+                              ? "bg-(--primary-subtle) border-(--primary) ring-1 ring-(--primary) shadow-md shadow-(--primary)/20"
+                              : "bg-(--card-bg) border-(--border) hover:border-(--primary)/40 hover:shadow-sm"
+                          }`}
                         >
-                          <div className="flex items-center gap-5">
-                            <div className="w-16 h-16 rounded-xl bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-(--text-sub) font-black text-xl border border-(--border) transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-lg bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-(--text-sub) font-semibold text-lg border border-(--border) transition-colors duration-200">
                               {company.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <h4
-                                className={`font-bold text-base ${editingId === company._id ? "text-(--primary)" : "text-(--text-main)"}`}
-                              >
+                              <h4 className={`font-semibold text-base transition-colors duration-200 ${editingId === company._id ? "text-(--primary)" : "text-(--text-main)"}`}>
                                 {company.name}
                               </h4>
-                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              <div className="flex flex-wrap gap-1.5 mt-2">
                                 {company.allowedModules.map((m: string) => (
                                   <span
                                     key={m}
-                                    className="text-[10px] font-bold bg-(--bg) border border-(--border) px-2 py-0.5 rounded-full text-(--text-sub)"
+                                    className="text-[10px] font-semibold bg-(--bg) border border-(--border) px-2.5 py-1 rounded-full text-(--text-sub) transition-colors duration-200"
                                   >
                                     {m}
                                   </span>
@@ -897,7 +887,7 @@ export default function AdminPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             <button
                               onClick={() => handleEdit(company)}
                               className="p-2.5 text-(--accent-blue) hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-colors border border-transparent hover:border-blue-200"
@@ -1095,23 +1085,21 @@ export default function AdminPage() {
                 <div className="h-full flex flex-col">
                   <div className="p-6 border-b border-(--border) bg-(--card-bg)/50 backdrop-blur-md flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
                     <div className="relative w-full sm:w-80">
-                      <Search className="w-4 h-4 absolute left-3.5 top-3 text-(--text-sub)" />
+                      <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-(--text-sub)" />
                       <input
                         type="text"
                         placeholder="Search by name or email..."
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2.5 bg-(--input-bg) border border-(--border) rounded-xl text-sm outline-none focus:border-(--primary) w-full placeholder:text-(--text-sub)"
+                        className="pl-10 pr-4 py-2.5 bg-(--input-bg) border border-(--border) rounded-lg text-sm outline-none focus:border-(--primary) focus:ring-2 focus:ring-(--primary)/20 w-full placeholder:text-(--text-sub) transition-all duration-200"
                       />
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                       <Filter className="w-4 h-4 text-(--text-sub)" />
                       <select
                         value={userRoleFilter}
-                        onChange={(e) =>
-                          setUserRoleFilter(e.target.value as any)
-                        }
-                        className="flex-1 sm:flex-none pl-3 pr-8 py-2.5 bg-(--input-bg) border border-(--border) rounded-xl text-sm font-bold outline-none focus:border-(--primary) cursor-pointer"
+                        onChange={(e) => setUserRoleFilter(e.target.value as any)}
+                        className="flex-1 sm:flex-none pl-3 pr-8 py-2.5 bg-(--input-bg) border border-(--border) rounded-lg text-sm font-semibold outline-none focus:border-(--primary) focus:ring-2 focus:ring-(--primary)/20 cursor-pointer transition-all duration-200"
                       >
                         <option value="all">All Roles</option>
                         <option value="admin">Admins</option>
@@ -1123,78 +1111,68 @@ export default function AdminPage() {
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-(--card-bg)/80 backdrop-blur-md sticky top-0 z-10 border-b border-(--border)">
                         <tr>
-                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest text-center w-16">
+                          <th className="py-4 px-8 text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider text-center w-16">
                             S.No.
                           </th>
-                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                          <th className="py-4 px-8 text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider">
                             User Profile
                           </th>
-                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                          <th className="py-4 px-8 text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider">
                             Assigned Role
                           </th>
-                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                          <th className="py-4 px-8 text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider">
                             Account Created
                           </th>
-                          <th className="py-4 px-8 text-[10px] font-black text-(--text-sub) uppercase tracking-widest text-right">
+                          <th className="py-4 px-8 text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider text-right">
                             Actions
                           </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-(--border)">
                         {filteredUsers.map((user, index) => (
-                          <tr
-                            key={user._id}
-                            className="group hover:bg-(--card-hover) transition-colors"
-                          >
-                            <td className="py-5 px-8 text-center text-xs font-bold text-(--text-sub)">
-                              {index + 1}
-                            </td>
+                          <tr key={user._id} className="group hover:bg-(--card-hover) transition-colors duration-200">
+                            <td className="py-5 px-8 text-center text-xs font-semibold text-(--text-sub)">{index + 1}</td>
                             <td className="py-5 px-8">
                               <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm border-2 border-white/20">
+                                <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-white/20 shadow-md">
                                   {user.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                  <p className="font-bold text-sm text-(--text-main)">
-                                    {user.name}
-                                  </p>
-                                  <p className="text-xs text-(--text-sub) font-medium">
-                                    {user.email}
-                                  </p>
+                                  <p className="font-semibold text-sm text-(--text-main)">{user.name}</p>
+                                  <p className="text-xs text-(--text-sub) font-medium">{user.email}</p>
                                 </div>
                               </div>
                             </td>
                             <td className="py-5 px-8">
                               {user.role === "admin" ? (
-                                <span className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-500/10 text-(--danger) px-3 py-1 rounded-full text-xs font-black ring-1 ring-red-100 dark:ring-red-500/20">
+                                <span className="inline-flex items-center gap-2 bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-red-200 dark:ring-red-900/50">
                                   <ShieldAlert className="w-3.5 h-3.5" /> Admin
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 text-(--accent-blue) px-3 py-1 rounded-full text-xs font-black ring-1 ring-blue-100 dark:ring-blue-500/20">
+                                <span className="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-blue-200 dark:ring-blue-900/50">
                                   <User className="w-3.5 h-3.5" /> Standard
                                 </span>
                               )}
                             </td>
-                            <td className="py-5 px-8 text-xs font-bold text-(--text-sub)">
-                              {new Date(user.createdAt).toLocaleDateString(
-                                undefined,
-                                { dateStyle: "medium" },
-                              )}
+                            <td className="py-5 px-8 text-xs font-semibold text-(--text-sub)">
+                              {new Date(user.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
                             </td>
                             <td className="py-5 px-8 text-right">
-                              <div className="flex items-center justify-end gap-3">
+                              <div className="flex items-center justify-end gap-2">
                                 <button
-                                  onClick={() =>
-                                    initiateToggleRole(user._id, user.role)
-                                  }
-                                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all border ${user.role === "admin" ? "bg-(--primary-subtle) text-(--primary) border-orange-100 dark:border-orange-500/20" : "bg-blue-50 text-(--accent-blue) border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20"} hover:scale-105 active:scale-95`}
+                                  onClick={() => initiateToggleRole(user._id, user.role)}
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 border ${
+                                    user.role === "admin"
+                                      ? "bg-(--primary-subtle) text-(--primary) border-orange-200 dark:border-orange-900/50 hover:bg-(--primary)/10"
+                                      : "bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-950/60"
+                                  } hover:scale-105 active:scale-95`}
                                 >
-                                  <Shield className="w-3.5 h-3.5" />{" "}
+                                  <Shield className="w-3.5 h-3.5" />
                                   {user.role === "admin" ? "Demote" : "Promote"}
                                 </button>
                                 <button
                                   onClick={() => initiateDeleteUser(user._id)}
-                                  className="p-2.5 text-(--text-sub) hover:text-(--danger) hover:bg-(--danger-bg) rounded-xl transition-all"
+                                  className="p-2 text-(--text-sub) hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/30 rounded-lg transition-colors duration-200"
                                 >
                                   <Trash className="w-4 h-4" />
                                 </button>
@@ -1230,9 +1208,9 @@ export default function AdminPage() {
                         name="uploaderEmail"
                         value={session?.user?.email || ""}
                       />
-                      <div className="flex-1 border-3 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-(--primary) hover:bg-(--card-bg) transition-all group min-h-0">
+                      <div className="flex-1 border-2 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-(--primary) hover:bg-(--card-bg) focus-within:border-(--primary) focus-within:ring-2 focus-within:ring-(--primary)/20 transition-all duration-200 group min-h-0">
                         <FileJson
-                          className={`w-14 h-14 mb-4 transition-transform group-hover:scale-110 ${selectedFileName ? "text-(--primary)" : "text-(--text-sub)"}`}
+                          className={`w-12 h-12 mb-4 transition-all duration-200 ${selectedFileName ? "text-(--primary)" : "text-(--text-sub) group-hover:text-(--primary) group-hover:scale-110"}`}
                         />
                         <label className="absolute inset-0 cursor-pointer">
                           <input
@@ -1250,19 +1228,19 @@ export default function AdminPage() {
                         </label>
                         {selectedFileName ? (
                           <div className="text-center px-6">
-                            <p className="text-sm font-black text-(--primary) break-all">
+                            <p className="text-sm font-semibold text-(--primary) break-all">
                               {selectedFileName}
                             </p>
-                            <p className="text-[10px] font-bold text-(--text-sub) mt-1">
+                            <p className="text-[10px] font-semibold text-(--text-sub) mt-1">
                               Ready for deployment
                             </p>
                           </div>
                         ) : (
                           <div className="text-center">
-                            <p className="text-sm font-black text-(--text-main)">
+                            <p className="text-sm font-semibold text-(--text-main)">
                               Drag & Drop Manifest
                             </p>
-                            <p className="text-xs font-bold text-(--text-sub) mt-1">
+                            <p className="text-xs font-medium text-(--text-sub) mt-1">
                               or click to browse local files
                             </p>
                           </div>
@@ -1291,36 +1269,23 @@ export default function AdminPage() {
                           placeholder="Filter logs..."
                           value={logSearch}
                           onChange={(e) => setLogSearch(e.target.value)}
-                          className="pl-10 pr-4 py-2 w-full bg-(--input-bg) border border-(--border) rounded-xl text-sm outline-none focus:border-(--primary) placeholder:text-(--text-sub)"
+                          className="pl-10 pr-4 py-2 w-full bg-(--input-bg) border border-(--border) rounded-lg text-sm outline-none focus:border-(--primary) focus:ring-2 focus:ring-(--primary)/20 placeholder:text-(--text-sub) transition-all duration-200"
                         />
                       </div>
                       <div className="relative w-full sm:w-48 group">
-                        <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-(--text-sub) pointer-events-none z-10 group-focus-within:text-(--primary) dark:text-gray-300" />
+                        <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-(--text-sub) pointer-events-none z-10 group-focus-within:text-(--primary) transition-colors duration-200" />
                         <input
                           type="date"
                           value={logDateFilter}
                           onChange={(e) => setLogDateFilter(e.target.value)}
-                          className="w-full pl-10 pr-3 py-2 bg-(--input-bg) border border-(--border) rounded-xl text-sm font-bold outline-none 
-               focus:border-(--primary) cursor-pointer hover:bg-(--card-hover) transition-all
-               dark:text-gray-100 text-center
-               scheme:light dark:scheme:dark]
-               [&::-webkit-calendar-picker-indicator]:opacity-0
-               [&::-webkit-calendar-picker-indicator]:absolute
-               [&::-webkit-calendar-picker-indicator]:inset-0
-               [&::-webkit-calendar-picker-indicator]:w-full
-               [&::-webkit-calendar-picker-indicator]:h-full
-               [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          className="w-full pl-10 pr-3 py-2 bg-(--input-bg) border border-(--border) rounded-lg text-sm font-semibold outline-none focus:border-(--primary) focus:ring-2 focus:ring-(--primary)/20 cursor-pointer hover:bg-(--card-hover) transition-all duration-200 dark:text-gray-100 text-center [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         />
                       </div>
                     </div>
                     <div className="flex-1 flex flex-col min-h-0">
-                      <div className="px-6 py-2 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
-                        <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
-                          Recent Deployments
-                        </span>
-                        <span className="text-[10px] font-black bg-(--primary) text-white px-2 py-0.5 rounded-full">
-                          {uploadLogs.length}
-                        </span>
+                      <div className="px-6 py-3 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
+                        <span className="text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider">Recent Deployments</span>
+                        <span className="text-[10px] font-semibold bg-(--primary) text-white px-2 py-0.5 rounded-full">{uploadLogs.length}</span>
                       </div>
                       <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
                         <table className="w-full text-left border-collapse">
@@ -1328,24 +1293,24 @@ export default function AdminPage() {
                             {uploadLogs.map((log) => (
                               <tr
                                 key={log._id}
-                                className="hover:bg-(--card-hover) transition-colors group"
+                                className="hover:bg-(--card-hover) transition-colors duration-200 group"
                               >
                                 <td className="py-4 px-6">
                                   <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-orange-900 dark:bg-orange-400 text-orange-50 flex items-center justify-center shrink border border-orange-50 dark:border-orange-50">
+                                    <div className="w-10 h-10 rounded-lg bg-orange-900 dark:bg-orange-500/20 text-orange-100 dark:text-orange-400 flex items-center justify-center shrink border border-orange-200 dark:border-orange-800/50 group-hover:scale-110 transition-transform duration-200">
                                       <FileUp className="w-5 h-5" />
                                     </div>
                                     <div>
-                                      <p className="text-sm font-bold text-(--text-main) truncate group-hover:text-(--primary) transition-colors">
+                                      <p className="text-sm font-semibold text-(--text-main) truncate group-hover:text-(--primary) transition-colors duration-200">
                                         {log.fileName}
                                       </p>
-                                      <p className="text-[10px] font-bold text-(--text-sub) uppercase">
+                                      <p className="text-[10px] font-semibold text-(--text-sub) uppercase mt-0.5">
                                         {log.uploaderEmail}
                                       </p>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="py-4 px-6 text-xs font-black text-(--text-sub) text-right">
+                                <td className="py-4 px-6 text-xs font-semibold text-(--text-sub) text-right">
                                   {new Date(
                                     log.uploadedAt,
                                   ).toLocaleDateString()}
@@ -1357,13 +1322,9 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex-1 flex flex-col min-h-0">
-                      <div className="px-6 py-2 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
-                        <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
-                          Manual Audit Trail
-                        </span>
-                        <span className="text-[10px] font-black bg-(--accent-blue) text-white px-2 py-0.5 rounded-full">
-                          {activityLogs.length}
-                        </span>
+                      <div className="px-6 py-3 bg-(--bg)/50 border-b border-(--border) flex justify-between items-center shrink-0">
+                        <span className="text-[10px] font-semibold text-(--text-sub) uppercase tracking-wider">Manual Audit Trail</span>
+                        <span className="text-[10px] font-semibold bg-(--accent-blue) text-white px-2 py-0.5 rounded-full">{activityLogs.length}</span>
                       </div>
                       <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
                         <table className="w-full text-left border-collapse">
@@ -1374,26 +1335,26 @@ export default function AdminPage() {
                               return (
                                 <tr
                                   key={log._id}
-                                  className="hover:bg-(--card-hover) transition-colors"
+                                  className="hover:bg-(--card-hover) transition-colors duration-200 group"
                                 >
                                   <td className="py-4 px-6">
                                     <div className="flex items-center gap-4">
                                       <div
-                                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${display.style}`}
+                                        className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-200 group-hover:scale-110 ${display.style}`}
                                       >
                                         <LogIcon className="w-5 h-5" />
                                       </div>
                                       <div>
-                                        <p className="text-sm font-bold text-(--text-main)">
+                                        <p className="text-sm font-semibold text-(--text-main)">
                                           {display.details}
                                         </p>
-                                        <p className="text-[10px] font-black uppercase text-(--text-sub)">
+                                        <p className="text-[10px] font-semibold uppercase text-(--text-sub) mt-0.5">
                                           {display.type} • {log.uploaderEmail}
                                         </p>
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="py-4 px-6 text-xs font-black text-(--text-sub) text-right">
+                                  <td className="py-4 px-6 text-xs font-semibold text-(--text-sub) text-right">
                                     {new Date(
                                       log.uploadedAt,
                                     ).toLocaleTimeString([], {
