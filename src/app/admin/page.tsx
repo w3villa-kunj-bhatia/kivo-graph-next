@@ -521,6 +521,7 @@ export default function AdminPage() {
               {isDarkMode ? "Dark Mode" : "Light Mode"}
             </span>
           </button>
+
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -541,7 +542,16 @@ export default function AdminPage() {
             {isProfileOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-(--card-bg) border border-(--border) rounded-xl shadow-xl p-2 z-50">
                 <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  onClick={() =>
+                    setConfirmation({
+                      isOpen: true,
+                      title: "Sign Out?",
+                      message:
+                        "Are you sure you want to sign out? You will need to log in again to access the admin panel.",
+                      isDangerous: true,
+                      onConfirm: () => signOut({ callbackUrl: "/login" }),
+                    })
+                  }
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 transition-all"
                 >
                   <LogOut className="w-4 h-4" />
@@ -569,7 +579,7 @@ export default function AdminPage() {
               className="w-3.5 h-3.5 text-emerald-500"
               strokeWidth={2.5}
             />
-            <span className="text-[10px] font-bold">Live Data</span>
+            <span className="text-[10px] font-bold">Kivo Dependency Graph</span>
           </div>
         </header>
 
@@ -624,7 +634,7 @@ export default function AdminPage() {
               <div className="w-196 flex flex-col bg-(--card-hover) overflow-hidden">
                 <div className="p-4 border-b border-(--border) flex justify-between items-center shrink-0">
                   <h3 className="text-sm font-black text-(--text-main)">
-                    {editingId ? "Edit" : "New"} Company
+                    {editingId ? "Edit" : "Add New"} Company
                   </h3>
                   {editingId && (
                     <button
@@ -755,7 +765,7 @@ export default function AdminPage() {
               </div>
               <div className="flex-1 flex flex-col overflow-hidden bg-(--bg)">
                 <div className="p-4 border-b border-(--border) bg-(--card-bg) flex items-center justify-between shrink-0">
-                  <span className="text-[10px] font-black text-(--text-sub) uppercase tracking-widest">
+                  <span className="text-[12px] font-black text-(--text-sub) uppercase tracking-widest">
                     Registry ({sortedCompanies.length})
                   </span>
                   <select
@@ -1115,7 +1125,7 @@ export default function AdminPage() {
                       <UploadCloud className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <h3 className="text-lg font-black text-(--text-main)">
-                      System Update
+                      Graph Update
                     </h3>
                   </div>
                   <p className="text-[10px] font-bold text-(--text-sub) uppercase tracking-widest">
@@ -1151,20 +1161,20 @@ export default function AdminPage() {
                     <div className="text-center px-4">
                       {selectedFileName ? (
                         <>
-                          <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 break-all">
+                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 break-all">
                             {selectedFileName}
                           </p>
-                          <p className="text-[10px] text-emerald-500 mt-1 font-bold">
+                          <p className="text-[12px] text-emerald-500 mt-1 font-bold">
                             Ready for deployment
                           </p>
                         </>
                       ) : (
                         <>
                           <p className="text-xs font-bold text-(--text-main)">
-                            Click or drag JSON
+                            Click or drag JSON here
                           </p>
-                          <p className="text-[10px] text-(--text-sub) mt-1">
-                            Updates graph structure
+                          <p className="text-[12px] text-(--text-sub) mt-1">
+                            Updates the graph structure
                           </p>
                         </>
                       )}
@@ -1209,10 +1219,10 @@ export default function AdminPage() {
                 <div className="flex-1 flex flex-col divide-y divide-(--border) overflow-hidden">
                   <div className="h-1/2 flex flex-col overflow-hidden">
                     <div className="px-6 py-3 bg-(--card-hover) border-b border-(--border) flex justify-between items-center shrink-0">
-                      <span className="text-[10px] font-black uppercase text-(--text-sub) tracking-widest">
+                      <span className="text-[12px] font-black uppercase text-(--text-sub) tracking-widest">
                         File Upload History
                       </span>
-                      <span className="text-[10px] font-bold bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] font-bold bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">
                         {uploadLogs.length}
                       </span>
                     </div>
@@ -1262,10 +1272,10 @@ export default function AdminPage() {
 
                   <div className="h-1/2 flex flex-col overflow-hidden">
                     <div className="px-6 py-3 bg-(--card-hover) border-b border-(--border) flex justify-between items-center shrink-0">
-                      <span className="text-[10px] font-black uppercase text-(--text-sub) tracking-widest">
+                      <span className="text-[12px] font-black uppercase text-(--text-sub) tracking-widest">
                         Manual Actions
                       </span>
-                      <span className="text-[10px] font-bold bg-sky-500/10 text-sky-600 px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] font-bold bg-sky-500/10 text-sky-600 px-2 py-0.5 rounded-full">
                         {activityLogs.length}
                       </span>
                     </div>

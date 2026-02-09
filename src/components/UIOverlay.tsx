@@ -24,6 +24,7 @@ import CompanySelector from "./CompanySelector";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { getActiveGraph } from "@/app/actions/graphActions";
+import ConfirmationModal from "./ConfirmationModal";
 
 export default function UIOverlay() {
   const {
@@ -40,6 +41,7 @@ export default function UIOverlay() {
 
   const { data: session, status } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -255,6 +257,15 @@ export default function UIOverlay() {
 
   return (
     <div className="absolute top-0 left-0 w-full z-50 pointer-events-auto">
+      <ConfirmationModal
+        isOpen={isSignOutModalOpen}
+        onClose={() => setIsSignOutModalOpen(false)}
+        onConfirm={() => signOut({ callbackUrl: "/login" })}
+        title="Sign Out"
+        message="Are you sure you want to sign out? You will need to log in again to access the dependency graphs."
+        isDangerous={true}
+      />
+
       <nav
         className={`
         relative w-full bg-(--card-bg)/95 backdrop-blur-md border-b border-(--border) 
@@ -471,7 +482,7 @@ export default function UIOverlay() {
                     </Link>
                   )}
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => setIsSignOutModalOpen(true)}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition w-full text-left"
                   >
                     <LogOut className="w-4 h-4" /> Sign Out
