@@ -435,6 +435,13 @@ export default function AdminPage() {
     };
   };
 
+  const navItems = [
+    { id: "companies", label: "Companies", icon: Building2 },
+    { id: "users", label: "Users", icon: Users },
+    { id: "modules", label: "Modules", icon: Layers },
+    { id: "logs", label: "Activity Log", icon: Activity },
+  ];
+
   return (
     <div className="h-screen w-full bg-(--bg) text-(--text-main) flex overflow-hidden transition-colors duration-300">
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-100">
@@ -463,7 +470,7 @@ export default function AdminPage() {
             <h1 className="text-base font-black tracking-tight text-(--text-main)">
               Admin Dashboard
             </h1>
-            <p className="text-[10px] font-bold text-(--text-sub) uppercase tracking-widest">
+            <p className="text-[8px] font-bold text-(--text-sub) uppercase tracking-widest">
               Control Panel
             </p>
           </div>
@@ -614,7 +621,7 @@ export default function AdminPage() {
         <div className="flex-1 bg-(--card-bg) border border-(--border) rounded-2xl shadow-lg overflow-hidden flex flex-col">
           {activeTab === "companies" && (
             <div className="flex-1 flex divide-x divide-(--border) overflow-hidden">
-              <div className="w-96 flex flex-col bg-(--card-hover) overflow-hidden">
+              <div className="w-196 flex flex-col bg-(--card-hover) overflow-hidden">
                 <div className="p-4 border-b border-(--border) flex justify-between items-center shrink-0">
                   <h3 className="text-sm font-black text-(--text-main)">
                     {editingId ? "Edit" : "New"} Company
@@ -635,7 +642,7 @@ export default function AdminPage() {
                     className="space-y-6"
                   >
                     <div>
-                      <label className="block text-[10px] font-bold text-(--text-sub) uppercase mb-2">
+                      <label className="block text-[16px] font-bold text-(--text-sub) uppercase mb-2">
                         Company Name
                       </label>
                       <input
@@ -648,7 +655,7 @@ export default function AdminPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-(--text-sub) uppercase mb-2">
+                      <label className="block text-[16px] font-bold text-(--text-sub) uppercase mb-2">
                         Module Access
                       </label>
                       <div className="space-y-2">
@@ -658,7 +665,7 @@ export default function AdminPage() {
                             onClick={() => toggleModule(mod)}
                             className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center justify-between transition-all ${formModules.has(mod) ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-(--card-bg) border-(--border) text-(--text-main) hover:border-orange-200"}`}
                           >
-                            <span className="text-xs font-bold">{mod}</span>
+                            <span className="text-sm font-bold">{mod}</span>
                             <div
                               className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${formModules.has(mod) ? "bg-white border-white" : "border-(--border)"}`}
                             >
@@ -673,6 +680,63 @@ export default function AdminPage() {
                         ))}
                       </div>
                     </div>
+                    {Array.from(formModules).some(
+                      (m) => MODULE_FEATURES[m],
+                    ) && (
+                      <div className="pt-4 border-t border-(--border)">
+                        <label className="block text-[16px] font-bold text-(--text-sub) uppercase mb-2">
+                          Granular Permissions
+                        </label>
+                        <div className="space-y-4">
+                          {Array.from(formModules).map((mod) => {
+                            const features = MODULE_FEATURES[mod];
+                            if (!features) return null;
+                            return (
+                              <div
+                                key={mod}
+                                className="bg-(--input-bg) border border-(--border) rounded-xl overflow-hidden"
+                              >
+                                <div className="px-3 py-2 bg-(--card-hover) border-b border-(--border) flex justify-between items-center">
+                                  <span className="text-[16px] font-black uppercase text-(--text-main)">
+                                    {mod}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAllFeatures(mod)}
+                                    className="text-[12px] font-bold text-orange-600 hover:underline"
+                                  >
+                                    Toggle All
+                                  </button>
+                                </div>
+                                <div className="p-2 grid grid-cols-2 gap-x-4 gap-y-1">
+                                  {features.map((feat) => (
+                                    <label
+                                      key={feat}
+                                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-(--card-hover) cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          moduleFeatures[mod]?.has(feat) ||
+                                          false
+                                        }
+                                        onChange={() =>
+                                          toggleFeature(mod, feat)
+                                        }
+                                        className="rounded border-(--border) text-orange-500 focus:ring-orange-500/20"
+                                      />
+                                      <span className="text-sm font-semibold text-(--text-main) truncate">
+                                        {feat}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </form>
                 </div>
                 <div className="p-4 border-t border-(--border) shrink-0 bg-(--card-bg)">
@@ -727,7 +791,7 @@ export default function AdminPage() {
                               {company.name}
                             </h4>
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
-                              {company.allowedModules.map((m: string) => (
+                              {company.allowedModules?.map((m: string) => (
                                 <span
                                   key={m}
                                   className="text-[9px] font-bold bg-(--bg) border border-(--border) px-1.5 py-0.5 rounded text-(--text-sub) uppercase tracking-wide"
@@ -741,7 +805,7 @@ export default function AdminPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEdit(company)}
-                            className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition-colors border border-sky-500/20"
+                            className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition-all"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -758,7 +822,7 @@ export default function AdminPage() {
                                 },
                               })
                             }
-                            className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors border border-rose-500/20"
+                            className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
                           >
                             <Trash className="w-4 h-4" />
                           </button>
@@ -841,7 +905,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${user.role === "admin" ? "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"}`}
+                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${user.role === "admin" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"}`}
                             >
                               {user.role === "admin" ? (
                                 <ArrowDownCircle className="w-3.5 h-3.5" />
@@ -863,7 +927,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
+                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
@@ -937,6 +1001,17 @@ export default function AdminPage() {
                             style={{ backgroundColor: c }}
                           />
                         ))}
+                        <div className="relative w-10 h-10 rounded-xl border-2 border-dashed border-(--border) flex items-center justify-center hover:bg-(--input-bg) transition-colors">
+                          <input
+                            type="color"
+                            value={selectedModuleColor}
+                            onChange={(e) =>
+                              setSelectedModuleColor(e.target.value)
+                            }
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          />
+                          <PlusCircle className="w-5 h-5 text-(--text-sub)" />
+                        </div>
                       </div>
                     </div>
                   </form>
@@ -1259,10 +1334,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-const navItems = [
-  { id: "companies", label: "Companies", icon: Building2 },
-  { id: "users", label: "Users", icon: Users },
-  { id: "modules", label: "Modules", icon: Layers },
-  { id: "logs", label: "Activity Log", icon: Activity },
-];
