@@ -483,13 +483,13 @@ export default function AdminPage() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as Tab)}
-                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group ${isActive ? "bg-(--card-hover) shadow-sm text-(--text-main)" : "text-(--text-sub) hover:bg-(--card-hover) hover:text-(--text-main)"}`}
+                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group ${isActive ? "bg-(--card-hover) shadow-sm text-(--text-main)" : "text-(--text-sub) hover:bg-orange-500/10 hover:text-(--text-main)"}`}
               >
                 {isActive && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 rounded-r-full" />
                 )}
                 <item.icon
-                  className={`w-4 h-4 ${isActive ? "text-orange-500" : "text-(--text-sub) group-hover:text-(--text-main)"}`}
+                  className={`w-4 h-4 ${isActive ? "text-orange-500" : "text-(--text-sub) group-hover:text-orange-500"}`}
                   strokeWidth={2.5}
                 />
                 <span className="text-sm font-bold tracking-tight">
@@ -574,7 +574,7 @@ export default function AdminPage() {
               Console
             </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-(--card-hover) border border-(--border) text-(--text-main)">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-(--card-hover) hover:bg-emerald-500/10 transition-colors border border-(--border) text-(--text-main)">
             <TrendingUp
               className="w-3.5 h-3.5 text-emerald-500"
               strokeWidth={2.5}
@@ -639,7 +639,7 @@ export default function AdminPage() {
                   {editingId && (
                     <button
                       onClick={resetForm}
-                      className="text-xs font-bold text-orange-600 hover:underline"
+                      className="text-xs font-bold text-orange-600 hover:text-orange-500 hover:underline transition-colors"
                     >
                       Cancel
                     </button>
@@ -673,7 +673,7 @@ export default function AdminPage() {
                           <div
                             key={mod}
                             onClick={() => toggleModule(mod)}
-                            className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center justify-between transition-all ${formModules.has(mod) ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-(--card-bg) border-(--border) text-(--text-main) hover:border-orange-500/50"}`}
+                            className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center justify-between transition-all ${formModules.has(mod) ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-(--card-bg) border-(--border) text-(--text-main) hover:border-orange-500/50 hover:bg-orange-500/5"}`}
                           >
                             <span className="text-sm font-bold">{mod}</span>
                             <div
@@ -713,7 +713,7 @@ export default function AdminPage() {
                                   <button
                                     type="button"
                                     onClick={() => toggleAllFeatures(mod)}
-                                    className="text-[12px] font-bold text-orange-600 hover:underline"
+                                    className="text-[12px] font-bold text-orange-600 hover:text-orange-500 hover:underline transition-colors"
                                   >
                                     Toggle All
                                   </button>
@@ -773,7 +773,7 @@ export default function AdminPage() {
                     onChange={(e) =>
                       setSortOption(e.target.value as SortOption)
                     }
-                    className="text-xs font-bold border border-(--border) rounded-lg px-2 py-1.5 outline-none bg-(--input-bg) text-(--text-main) focus:border-orange-500"
+                    className="text-xs font-bold border border-(--border) rounded-lg px-2 py-1.5 outline-none bg-(--input-bg) text-(--text-main) hover:border-orange-500 focus:border-orange-500 transition-colors"
                   >
                     <option value="name-asc">Name: A-Z</option>
                     <option value="name-desc">Name: Z-A</option>
@@ -786,7 +786,7 @@ export default function AdminPage() {
                     {sortedCompanies.map((company) => (
                       <div
                         key={company._id}
-                        className={`p-4 rounded-xl border flex items-center justify-between group transition-all duration-200 ${editingId === company._id ? "bg-orange-500/10 border-orange-500 ring-1 ring-orange-500/20" : "bg-(--card-bg) border-(--border) hover:border-orange-500/50 hover:shadow-sm"}`}
+                        className={`p-4 rounded-xl border flex items-center justify-between group transition-all duration-200 ${editingId === company._id ? "bg-orange-500/10 border-orange-500 ring-1 ring-orange-500/20" : "bg-(--card-bg) border-(--border) hover:border-orange-500/50 hover:bg-orange-500/5 hover:shadow-sm"}`}
                       >
                         <div className="flex items-center gap-4">
                           <div
@@ -815,7 +815,7 @@ export default function AdminPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEdit(company)}
-                            className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition-all"
+                            className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500 hover:text-white transition-all"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -832,7 +832,7 @@ export default function AdminPage() {
                                 },
                               })
                             }
-                            className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                            className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all"
                           >
                             <Trash className="w-4 h-4" />
                           </button>
@@ -855,13 +855,13 @@ export default function AdminPage() {
                     placeholder="Search users..."
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) focus:ring-2 focus:ring-sky-500/20 outline-none"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) hover:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none transition-colors"
                   />
                 </div>
                 <select
                   value={userRoleFilter}
                   onChange={(e) => setUserRoleFilter(e.target.value as any)}
-                  className="px-4 py-2.5 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) outline-none"
+                  className="px-4 py-2.5 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) hover:border-sky-500 outline-none transition-colors"
                 >
                   <option value="all">All Roles</option>
                   <option value="admin">Admins</option>
@@ -873,7 +873,7 @@ export default function AdminPage() {
                   {filteredUsers.map((user, index) => (
                     <div
                       key={user._id}
-                      className="p-4 rounded-xl border border-(--border) bg-(--card-bg) hover:shadow-md hover:border-sky-500/50 transition-all"
+                      className="p-4 rounded-xl border border-(--border) bg-(--card-bg) hover:shadow-md hover:border-sky-500/50 hover:bg-sky-500/5 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -915,7 +915,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${user.role === "admin" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"}`}
+                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${user.role === "admin" ? "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500 hover:text-white" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"}`}
                             >
                               {user.role === "admin" ? (
                                 <ArrowDownCircle className="w-3.5 h-3.5" />
@@ -937,7 +937,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
+                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/20 transition-all"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
@@ -961,7 +961,7 @@ export default function AdminPage() {
                   {editingModuleId && (
                     <button
                       onClick={resetModuleForm}
-                      className="text-xs font-bold text-purple-600 hover:underline"
+                      className="text-xs font-bold text-purple-600 hover:text-purple-500 hover:underline transition-colors"
                     >
                       Cancel
                     </button>
@@ -1045,13 +1045,13 @@ export default function AdminPage() {
                       placeholder="Search modules..."
                       value={moduleSearch}
                       onChange={(e) => setModuleSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) focus:ring-2 focus:ring-purple-500/20 outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) hover:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-colors"
                     />
                   </div>
                   <select
                     value={moduleTypeFilter}
                     onChange={(e) => setModuleTypeFilter(e.target.value as any)}
-                    className="px-4 py-2.5 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) outline-none"
+                    className="px-4 py-2.5 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) hover:border-purple-500 outline-none transition-colors"
                   >
                     <option value="all">All Types</option>
                     <option value="default">System</option>
@@ -1063,7 +1063,7 @@ export default function AdminPage() {
                     {filteredModules.map((mod) => (
                       <div
                         key={mod._id}
-                        className={`p-4 rounded-xl border border-(--border) flex items-center justify-between transition-all hover:shadow-md hover:border-purple-500/50 ${mod.type === "default" ? "bg-(--card-hover) opacity-80" : "bg-(--card-bg)"}`}
+                        className={`p-4 rounded-xl border border-(--border) flex items-center justify-between transition-all hover:shadow-md hover:border-purple-500/50 hover:bg-purple-500/5 ${mod.type === "default" ? "bg-(--card-hover) opacity-80" : "bg-(--card-bg)"}`}
                       >
                         <div className="flex items-center gap-4">
                           <div
@@ -1085,7 +1085,7 @@ export default function AdminPage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditModule(mod)}
-                              className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors border border-purple-500/20"
+                              className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500 hover:text-white transition-all border border-purple-500/20"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -1102,7 +1102,7 @@ export default function AdminPage() {
                                   },
                                 })
                               }
-                              className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
+                              className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/20 transition-all"
                             >
                               <Trash className="w-4 h-4" />
                             </button>
@@ -1205,14 +1205,14 @@ export default function AdminPage() {
                       placeholder="Search logs..."
                       value={logSearch}
                       onChange={(e) => setLogSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) hover:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-colors"
                     />
                   </div>
                   <input
                     type="date"
                     value={logDateFilter}
                     onChange={(e) => setLogDateFilter(e.target.value)}
-                    className="px-4 py-2 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) outline-none"
+                    className="px-4 py-2 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) hover:border-emerald-500 outline-none transition-colors"
                   />
                 </div>
 
