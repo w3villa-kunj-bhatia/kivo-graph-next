@@ -95,6 +95,7 @@ export default function AdminPage() {
 
   const profileRef = useRef<HTMLDivElement>(null);
   const uploadFormRef = useRef<HTMLFormElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const { data: session } = useSession();
 
   const [toast, setToast] = useState<{
@@ -1208,12 +1209,24 @@ export default function AdminPage() {
                       className="w-full pl-9 pr-3 py-2 rounded-xl border border-(--border) text-sm font-bold bg-(--input-bg) text-(--text-main) hover:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-colors"
                     />
                   </div>
-                  <input
-                    type="date"
-                    value={logDateFilter}
-                    onChange={(e) => setLogDateFilter(e.target.value)}
-                    className="px-4 py-2 rounded-xl border border-(--border) text-xs font-bold bg-(--input-bg) text-(--text-main) hover:border-emerald-500 outline-none transition-colors"
-                  />
+                  <div className="relative flex items-center">
+                    <button
+                      onClick={() => dateInputRef.current?.showPicker()}
+                      className="flex items-center gap-3 px-4 py-2 rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition-all cursor-pointer group"
+                    >
+                      <Calendar className="w-4 h-4 transition-colors group-hover:text-white" />
+                      <span className="text-xs font-bold min-w-20text-left">
+                        {logDateFilter || "dd/mm/yyyy"}
+                      </span>
+                    </button>
+                    <input
+                      ref={dateInputRef}
+                      type="date"
+                      value={logDateFilter}
+                      onChange={(e) => setLogDateFilter(e.target.value)}
+                      className="absolute inset-0 opacity-0 pointer-events-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex-1 flex flex-col divide-y divide-(--border) overflow-hidden">
