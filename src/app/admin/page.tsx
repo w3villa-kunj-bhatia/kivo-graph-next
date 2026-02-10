@@ -503,14 +503,14 @@ export default function AdminPage() {
         <div className="p-3 space-y-2 border-t border-(--border)">
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--card-hover) hover:opacity-80 transition-all text-(--text-main)"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--card-hover) hover:bg-orange-500/10 transition-all text-(--text-main)"
           >
             <Home className="w-4 h-4 text-(--text-sub)" strokeWidth={2.5} />
             <span className="text-sm font-bold">Graph View</span>
           </Link>
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--card-hover) hover:opacity-80 transition-all border border-(--border) text-(--text-main)"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--card-hover) hover:bg-orange-500/10 transition-all border border-(--border) text-(--text-main)"
           >
             {isDarkMode ? (
               <Moon className="w-4 h-4 text-(--text-sub)" strokeWidth={2.5} />
@@ -525,7 +525,7 @@ export default function AdminPage() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--card-hover) hover:opacity-80 transition-all text-(--text-main)"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--card-hover) hover:bg-orange-500/10 transition-all text-(--text-main)"
             >
               <div className="w-8 h-8 rounded-full bg-linear-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white text-xs font-bold">
                 {session?.user?.name?.charAt(0) || "A"}
@@ -552,7 +552,7 @@ export default function AdminPage() {
                       onConfirm: () => signOut({ callbackUrl: "/login" }),
                     })
                   }
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 transition-all"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-all"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-xs font-bold">Sign Out</span>
@@ -673,7 +673,7 @@ export default function AdminPage() {
                           <div
                             key={mod}
                             onClick={() => toggleModule(mod)}
-                            className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center justify-between transition-all ${formModules.has(mod) ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-(--card-bg) border-(--border) text-(--text-main) hover:border-orange-200"}`}
+                            className={`cursor-pointer rounded-xl border px-3 py-2.5 flex items-center justify-between transition-all ${formModules.has(mod) ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-(--card-bg) border-(--border) text-(--text-main) hover:border-orange-500/50"}`}
                           >
                             <span className="text-sm font-bold">{mod}</span>
                             <div
@@ -722,7 +722,7 @@ export default function AdminPage() {
                                   {features.map((feat) => (
                                     <label
                                       key={feat}
-                                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-(--card-hover) cursor-pointer"
+                                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-orange-500/10 cursor-pointer transition-colors"
                                     >
                                       <input
                                         type="checkbox"
@@ -786,17 +786,17 @@ export default function AdminPage() {
                     {sortedCompanies.map((company) => (
                       <div
                         key={company._id}
-                        className={`p-4 rounded-xl border flex items-center justify-between group transition-all duration-200 ${editingId === company._id ? "bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800 ring-1 ring-orange-500/20" : "bg-(--card-bg) border-(--border) hover:border-orange-300 hover:shadow-sm"}`}
+                        className={`p-4 rounded-xl border flex items-center justify-between group transition-all duration-200 ${editingId === company._id ? "bg-orange-500/10 border-orange-500 ring-1 ring-orange-500/20" : "bg-(--card-bg) border-(--border) hover:border-orange-500/50 hover:shadow-sm"}`}
                       >
                         <div className="flex items-center gap-4">
                           <div
-                            className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg border shadow-sm ${editingId === company._id ? "bg-orange-100 text-orange-600 border-orange-200" : "bg-(--bg) text-(--text-sub) border-(--border)"}`}
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg border shadow-sm ${editingId === company._id ? "bg-orange-500/20 text-orange-500 border-orange-500" : "bg-(--bg) text-(--text-sub) border-(--border)"}`}
                           >
                             {company.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <h4
-                              className={`font-bold text-sm ${editingId === company._id ? "text-orange-700 dark:text-orange-400" : "text-(--text-main)"}`}
+                              className={`font-bold text-sm ${editingId === company._id ? "text-orange-500" : "text-(--text-main)"}`}
                             >
                               {company.name}
                             </h4>
@@ -873,7 +873,7 @@ export default function AdminPage() {
                   {filteredUsers.map((user, index) => (
                     <div
                       key={user._id}
-                      className="p-4 rounded-xl border border-(--border) bg-(--card-bg) hover:shadow-md transition-all"
+                      className="p-4 rounded-xl border border-(--border) bg-(--card-bg) hover:shadow-md hover:border-sky-500/50 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -1011,7 +1011,7 @@ export default function AdminPage() {
                             style={{ backgroundColor: c }}
                           />
                         ))}
-                        <div className="relative w-10 h-10 rounded-xl border-2 border-dashed border-(--border) flex items-center justify-center hover:bg-(--input-bg) transition-colors">
+                        <div className="relative w-10 h-10 rounded-xl border-2 border-dashed border-(--border) flex items-center justify-center hover:bg-purple-500/10 transition-colors">
                           <input
                             type="color"
                             value={selectedModuleColor}
@@ -1063,7 +1063,7 @@ export default function AdminPage() {
                     {filteredModules.map((mod) => (
                       <div
                         key={mod._id}
-                        className={`p-4 rounded-xl border border-(--border) flex items-center justify-between transition-all hover:shadow-md ${mod.type === "default" ? "bg-(--card-hover) opacity-80" : "bg-(--card-bg)"}`}
+                        className={`p-4 rounded-xl border border-(--border) flex items-center justify-between transition-all hover:shadow-md hover:border-purple-500/50 ${mod.type === "default" ? "bg-(--card-hover) opacity-80" : "bg-(--card-bg)"}`}
                       >
                         <div className="flex items-center gap-4">
                           <div
@@ -1142,7 +1142,7 @@ export default function AdminPage() {
                     name="uploaderEmail"
                     value={session?.user?.email || ""}
                   />
-                  <div className="flex-1 min-h-50px border-2 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group bg-(--card-bg)">
+                  <div className="flex-1 min-h-37.5 border-2 border-dashed border-(--border) rounded-2xl flex flex-col items-center justify-center relative hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group bg-(--card-bg)">
                     <FileJson
                       className={`w-12 h-12 mb-4 transition-all ${selectedFileName ? "text-emerald-500 scale-110" : "text-(--text-sub) group-hover:text-emerald-500"}`}
                     />
@@ -1245,7 +1245,7 @@ export default function AdminPage() {
                           {uploadLogs.map((log) => (
                             <tr
                               key={log._id}
-                              className="hover:bg-(--card-hover)/50"
+                              className="hover:bg-emerald-500/5 transition-colors"
                             >
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
@@ -1304,7 +1304,7 @@ export default function AdminPage() {
                             return (
                               <tr
                                 key={log._id}
-                                className="hover:bg-(--card-hover)/50"
+                                className="hover:bg-emerald-500/5 transition-colors"
                               >
                                 <td className="px-6 py-4">
                                   <div
