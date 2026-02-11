@@ -35,7 +35,10 @@ export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
 
-  const isAdmin = session?.user?.role === "admin";
+  const isAdminRef = useRef(false);
+  useEffect(() => {
+    isAdminRef.current = session?.user?.role === "admin";
+  }, [session]);
 
   const {
     setCy,
@@ -68,6 +71,28 @@ export default function GraphCanvas() {
   }>({ message: "", type: null });
 
   const layoutContext = "global";
+
+  const layoutConfig = {
+    name: "fcose",
+    quality: "proof",
+    randomize: true,
+    animate: true,
+    animationDuration: 1000,
+    fit: true,
+    padding: 30,
+    nodeDimensionsIncludeLabels: true,
+    uniformNodeDimensions: false,
+    packComponents: true,
+    tile: true,
+    tilingPaddingVertical: 40,
+    tilingPaddingHorizontal: 40,
+    nodeRepulsion: (node: any) => 6500,
+    idealEdgeLength: (edge: any) => 150,
+    edgeElasticity: (edge: any) => 0.45,
+    nestingFactor: 0.1,
+    gravity: 0.25,
+    numIter: 2500,
+  };
 
   useEffect(() => {
     async function loadLayout() {
@@ -182,7 +207,7 @@ export default function GraphCanvas() {
       });
 
       cy.on("cxttap", (e) => {
-        if (!isAdmin) return;
+        if (!isAdminRef.current) return;
 
         const target = e.target;
         const isBg = target === cy;
@@ -203,6 +228,7 @@ export default function GraphCanvas() {
       cy.on("tap", (e) => {
         setContextMenu(null);
         const target = e.target;
+
         if (target === cy) {
           closePopup();
           return;
@@ -256,7 +282,7 @@ export default function GraphCanvas() {
         });
       });
     }
-  }, [setCy, isAdmin]);
+  }, [setCy]);
 
   useEffect(() => {
     if (graphData && cyRef.current) {
@@ -290,49 +316,11 @@ export default function GraphCanvas() {
       });
 
       const hasSavedPositions = Object.keys(nodePositions).length > 0;
-      const hasNewUnpositionedNodes = graphData.nodes.some(
-        (node) => !nodePositions[node.data.id],
-      );
 
-      if (hasSavedPositions && !hasNewUnpositionedNodes) {
-        cy.layout({
-          name: "preset",
-          fit: true,
-          padding: 50,
-          animate: false,
-        } as any).run();
+      if (hasSavedPositions) {
+        cy.layout({ name: "preset", fit: true, padding: 50 }).run();
       } else {
-        if (hasSavedPositions) {
-          cy.nodes()
-            .filter((n) => !!nodePositions[n.id()])
-            .lock();
-        }
-
-        const layout = cy.layout({
-          name: "fcose",
-          randomize: !hasSavedPositions,
-          animate: false,
-          fit: true,
-          quality: "default",
-          packComponents: true,
-          tile: true,
-          nodeRepulsion: 6500,
-          idealEdgeLength: 80,
-          edgeElasticity: 0.45,
-          nestingFactor: 0.1,
-          gravity: 0.25,
-          numIter: 2500,
-          nodeDimensionsIncludeLabels: true,
-          tilingPaddingVertical: 50,
-          tilingPaddingHorizontal: 50,
-          stop: () => {
-            if (hasSavedPositions) {
-              cy.nodes().unlock();
-            }
-          },
-        } as any);
-
-        layout.run();
+        cy.layout(layoutConfig as any).run();
       }
     }
   }, [graphData, nodePositions]);
@@ -346,6 +334,9 @@ export default function GraphCanvas() {
 
   const handleCreateNode = async (data: any) => {
     const newNode = { ...data, ...clickPos };
+
+    setNodePositions({ [newNode.id]: clickPos });
+
     addNode(newNode);
     await addNodeToGraph(newNode);
   };
@@ -371,9 +362,10 @@ export default function GraphCanvas() {
       return;
     }
 
+    edges.forEach((edge) => removeElement(edge.id()));
     edges.remove();
-    setDisconnectionMode(false, null);
 
+    setDisconnectionMode(false, null);
     await disconnectNodes(source, target);
   };
 
@@ -429,7 +421,7 @@ export default function GraphCanvas() {
         onClose={() => setToastState({ message: "", type: null })}
       />
 
-      {isAdmin && (
+      {isAdminRef.current && (
         <div className="absolute top-4 right-4 z-30">
           <button
             onClick={handleSaveLayout}
