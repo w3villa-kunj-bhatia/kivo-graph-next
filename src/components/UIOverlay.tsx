@@ -16,6 +16,7 @@ import {
   X,
   Download,
   MousePointerClick,
+  Save,
 } from "lucide-react";
 import { processGraphData } from "@/utils/graphUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -23,8 +24,9 @@ import { getGraphStyles } from "@/utils/graphStyles";
 import CompanySelector from "./CompanySelector";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
-import { getActiveGraph } from "@/app/actions/graphActions";
+import { getActiveGraph, saveGraphLayout } from "@/app/actions/graphActions";
 import ConfirmationModal from "./ConfirmationModal";
+import Toast from "./Toast";
 
 export default function UIOverlay() {
   const {
@@ -37,6 +39,10 @@ export default function UIOverlay() {
     setGraphData,
     setIsLoading,
     moduleColors,
+    nodePositions,
+    setNodePositions,
+    isSaving,
+    setIsSaving,
   } = useGraphStore();
 
   const { data: session, status } = useSession();
@@ -49,7 +55,41 @@ export default function UIOverlay() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [nodeList, setNodeList] = useState<any[]>([]);
 
+  // Local Toast State
+  const [toastState, setToastState] = useState<{
+    message: string;
+    type: "success" | "error" | null;
+  }>({ message: "", type: null });
+
   const isAdmin = session?.user?.role === "admin";
+
+  // --- HANDLE SAVE LAYOUT ---
+  const handleSaveLayout = async () => {
+    if (!cy || cy.destroyed()) return;
+
+    setIsSaving(true);
+    const positions: Record<string, { x: number; y: number }> = {};
+
+    // Extract current coordinates for all nodes that are not automatically sized containers
+    cy.nodes().forEach((node: any) => {
+      if (!node.isParent() || node.data("isGroup")) {
+        positions[node.id()] = node.position();
+      }
+    });
+
+    const finalPositions = { ...nodePositions, ...positions };
+    setNodePositions(finalPositions);
+
+    // Persist to database
+    const result = await saveGraphLayout(finalPositions, "global");
+    setIsSaving(false);
+
+    if (result.success) {
+      setToastState({ message: "Layout saved successfully!", type: "success" });
+    } else {
+      setToastState({ message: "Failed to save layout.", type: "error" });
+    }
+  };
 
   useEffect(() => {
     if (isDarkMode) {
@@ -106,58 +146,10 @@ export default function UIOverlay() {
 
         if (data) {
           const elements = processGraphData(data);
-
-          const { nodePositions } = useGraphStore.getState();
-          const hasSavedPositions = Object.keys(nodePositions).length > 0;
-
-          const nodesWithPositions = elements.nodes.map((node) => {
-            const savedPos = nodePositions[node.data.id];
-            if (savedPos) {
-              return { ...node, position: savedPos };
-            }
-            return node;
-          });
-          elements.nodes = nodesWithPositions;
-
+          // Set data in store; GraphCanvas useEffect will handle the rendering and layout logic
+          // This prevents UIOverlay from overriding preset positions with a fresh fcose layout
           setGraphData(elements);
-
-          if (cy.destroyed()) return;
-
-          cy.elements().remove();
-          cy.add(elements.nodes);
-
-          const validNodeIds = new Set(
-            elements.nodes.map((n: any) => n.data.id),
-          );
-
-          const safeEdges = elements.edges.filter((edge: any) => {
-            const hasSource = validNodeIds.has(edge.data.source);
-            const hasTarget = validNodeIds.has(edge.data.target);
-            return hasSource && hasTarget;
-          });
-
-          cy.add(safeEdges);
-
-          const layoutConfig: any = hasSavedPositions
-            ? {
-                name: "preset",
-                animate: true,
-                fit: true,
-                padding: 50,
-              }
-            : {
-                name: "fcose",
-                animate: true,
-                randomize: true,
-                animationDuration: 1000,
-                nodeRepulsion: 4500,
-                idealEdgeLength: 100,
-              };
-
-          if (!cy.destroyed()) {
-            cy.layout(layoutConfig).run();
-            setStats(elements.nodes.length, elements.edges.length);
-          }
+          setStats(elements.nodes.length, elements.edges.length);
         }
       } catch (err) {
         console.error("Failed to load active graph:", err);
@@ -257,6 +249,12 @@ export default function UIOverlay() {
 
   return (
     <div className="absolute top-0 left-0 w-full z-50 pointer-events-auto">
+      <Toast
+        message={toastState.message}
+        type={toastState.type}
+        onClose={() => setToastState({ message: "", type: null })}
+      />
+
       <ConfirmationModal
         isOpen={isSignOutModalOpen}
         onClose={() => setIsSignOutModalOpen(false)}
@@ -334,6 +332,28 @@ export default function UIOverlay() {
           <div
             className={`flex gap-2 ${isMobileMenuOpen ? "justify-between mb-2" : "shrink-0"}`}
           >
+            {/* SAVE LAYOUT BUTTON */}
+            {isAdmin && (
+              <button
+                onClick={handleSaveLayout}
+                disabled={isSaving}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition border border-(--border)
+                  ${
+                    isSaving
+                      ? "bg-(--border) text-(--text-sub) cursor-not-allowed opacity-50"
+                      : "bg-blue-600/10 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-600/30 shadow-sm"
+                  }`}
+                title="Save Current Node Positions"
+              >
+                {isSaving ? (
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>Save Layout</span>
+              </button>
+            )}
+
             {isAdmin && (
               <button
                 onClick={handleDownloadJSON}

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import dbConnect from "@/lib/dbConnect";
 import GraphLog from "@/models/GraphLog";
 import AccessPolicy from "@/models/AccessPolicy";
+import GraphLayout from "@/models/GraphLayout"; // Ensure this model exists
 import { auth } from "@/auth";
 
 export async function uploadGraph(prevState: any, formData: FormData) {
@@ -112,6 +113,59 @@ export async function getCompanyGraph(companyId?: string) {
     edges: validEdges,
   };
 }
+
+// --- NEW: Layout Persistence Actions ---
+
+export async function saveGraphLayout(
+  positions: Record<string, { x: number; y: number }>,
+  context: string = "global",
+) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await dbConnect();
+
+    const operations = Object.entries(positions).map(([nodeId, pos]) => ({
+      updateOne: {
+        filter: { nodeId, context },
+        update: { $set: { x: pos.x, y: pos.y } },
+        upsert: true,
+      },
+    }));
+
+    if (operations.length > 0) {
+      await GraphLayout.bulkWrite(operations);
+    }
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to save layout:", error);
+    return { success: false, error: "Failed to save layout" };
+  }
+}
+
+export async function getGraphLayout(context: string = "global") {
+  try {
+    await dbConnect();
+    const layouts = await GraphLayout.find({ context }).lean();
+
+    const positions: Record<string, { x: number; y: number }> = {};
+    layouts.forEach((l: any) => {
+      positions[l.nodeId] = { x: l.x, y: l.y };
+    });
+
+    return positions;
+  } catch (error) {
+    console.error("Failed to fetch layout:", error);
+    return {};
+  }
+}
+
+// ---------------------------------------
 
 export async function addNodeToGraph(nodeData: any) {
   const session = await auth();

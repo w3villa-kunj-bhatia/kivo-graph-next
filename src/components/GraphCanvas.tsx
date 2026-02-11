@@ -19,9 +19,12 @@ import {
   addEdgeToGraph,
   deleteGraphElement,
   disconnectNodes,
+  saveGraphLayout,
+  getGraphLayout,
 } from "@/app/actions/graphActions";
 import { getModules } from "@/app/actions/moduleActions";
 import { COLORS as DEFAULT_COLORS } from "@/utils/constants";
+import Toast from "./Toast";
 
 cytoscape.use(fcose);
 if (typeof cytoscape("core", "expandCollapse") === "undefined") {
@@ -32,10 +35,7 @@ export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
 
-  const isAdminRef = useRef(false);
-  useEffect(() => {
-    isAdminRef.current = session?.user?.role === "admin";
-  }, [session]);
+  const isAdmin = session?.user?.role === "admin";
 
   const {
     setCy,
@@ -60,6 +60,52 @@ export default function GraphCanvas() {
   } = useGraphStore();
 
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [toastState, setToastState] = useState<{
+    message: string;
+    type: "success" | "error" | null;
+  }>({ message: "", type: null });
+
+  const layoutContext = "global";
+
+  // Load Layout on Mount from Database
+  useEffect(() => {
+    async function loadLayout() {
+      const savedPositions = await getGraphLayout(layoutContext);
+      if (savedPositions && Object.keys(savedPositions).length > 0) {
+        setNodePositions(savedPositions);
+      }
+    }
+    loadLayout();
+  }, [setNodePositions, layoutContext]);
+
+  const handleSaveLayout = async () => {
+    if (!cyRef.current) return;
+
+    setIsSaving(true);
+    const positions: Record<string, { x: number; y: number }> = {};
+
+    cyRef.current.nodes().forEach((node) => {
+      // We save positions for leaf nodes or designated module groups
+      if (!node.isParent() || node.data("isGroup")) {
+        positions[node.id()] = node.position();
+      }
+    });
+
+    const finalPositions = { ...nodePositions, ...positions };
+    setNodePositions(finalPositions);
+
+    const result = await saveGraphLayout(finalPositions, layoutContext);
+
+    setIsSaving(false);
+
+    if (result.success) {
+      setToastState({ message: "Layout saved successfully!", type: "success" });
+    } else {
+      setToastState({ message: "Failed to save layout.", type: "error" });
+    }
+  };
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -138,7 +184,7 @@ export default function GraphCanvas() {
       });
 
       cy.on("cxttap", (e) => {
-        if (!isAdminRef.current) return;
+        if (!isAdmin) return;
 
         const target = e.target;
         const isBg = target === cy;
@@ -158,9 +204,7 @@ export default function GraphCanvas() {
 
       cy.on("tap", (e) => {
         setContextMenu(null);
-
         const target = e.target;
-
         if (target === cy) {
           closePopup();
           return;
@@ -214,8 +258,9 @@ export default function GraphCanvas() {
         });
       });
     }
-  }, [setCy]);
+  }, [setCy, isAdmin]);
 
+  // SMART RENDERER: Syncs store data with Cytoscape and manages layout transitions
   useEffect(() => {
     if (graphData && cyRef.current) {
       const cy = cyRef.current;
@@ -223,7 +268,7 @@ export default function GraphCanvas() {
       cy.batch(() => {
         cy.elements().remove();
 
-        // 1. Add nodes (apply saved positions if they exist)
+        // 1. Assign positions from store to nodes being added
         const nodesWithPositions = graphData.nodes.map((node) => {
           const savedPos = nodePositions[node.data.id];
           return savedPos ? { ...node, position: savedPos } : node;
@@ -249,43 +294,63 @@ export default function GraphCanvas() {
         }
       });
 
+      // --- SMART LAYOUT TRANSITIONS ---
+
       const hasSavedPositions = Object.keys(nodePositions).length > 0;
 
-      // 3. FORCE AUTOMATIC LAYOUT (Clean & Organized)
-      // We use 'fcose' even if we have saved positions to ensure new nodes (at 0,0)
-      // are integrated nicely without exploding the graph.
-      cy.layout({
-        name: "fcose",
+      // Check for new nodes that lack saved positions (e.g., Company Feature nodes)
+      const hasNewUnpositionedNodes = graphData.nodes.some(
+        (node) => !nodePositions[node.data.id],
+      );
 
-        // --- Core Settings ---
-        // If we have no positions, randomize to find global optimum.
-        // If we DO have positions, don't randomize (keep user's rough layout) but refine it.
-        randomize: !hasSavedPositions,
-        animate: false,
-        fit: !hasSavedPositions, // Only auto-fit if it's a fresh load
+      if (hasSavedPositions && !hasNewUnpositionedNodes) {
+        // SCENARIO: Switching views (e.g., Company -> All) where data is already saved.
+        // Use 'preset' to strictly respect the saved coordinates.
+        cy.layout({
+          name: "preset",
+          fit: true,
+          padding: 50,
+          animate: false,
+        } as any).run();
+      } else {
+        // SCENARIO: Fresh graph or adding new nodes (Features).
+        // Lock existing nodes to maintain their positions while new ones flow around them.
+        if (hasSavedPositions) {
+          cy.nodes()
+            .filter((n) => !!nodePositions[n.id()])
+            .lock();
+        }
 
-        // --- Grouping & Separation ---
-        quality: "default",
-        packComponents: true, // Key: Groups disconnected modules tightly
-        tile: true, // Key: Tiles these groups nicely
+        const layout = cy.layout({
+          name: "fcose",
+          randomize: !hasSavedPositions,
+          animate: false,
+          fit: true,
+          quality: "default",
+          packComponents: true,
+          tile: true,
+          nodeRepulsion: 6500,
+          idealEdgeLength: 80,
+          edgeElasticity: 0.45,
+          nestingFactor: 0.1,
+          gravity: 0.25,
+          numIter: 2500,
+          nodeDimensionsIncludeLabels: true,
+          tilingPaddingVertical: 50,
+          tilingPaddingHorizontal: 50,
 
-        // --- Visual Spacing ---
-        nodeRepulsion: 6500, // High repulsion = no overlap
-        idealEdgeLength: 80, // Shorter edges = tighter module groups
-        edgeElasticity: 0.45,
-        nestingFactor: 0.1,
-        gravity: 0.25,
-        numIter: 2500,
+          // Unlock nodes after layout completes so user can drag them again
+          stop: () => {
+            if (hasSavedPositions) {
+              cy.nodes().unlock();
+            }
+          },
+        } as any);
 
-        // --- Label & Module Handling ---
-        nodeDimensionsIncludeLabels: true, // Prevents text overlap
-        tilingPaddingVertical: 50, // Space between modules (Vertical)
-        tilingPaddingHorizontal: 50, // Space between modules (Horizontal)
-        gravityRangeCompound: 1.5,
-        gravityCompound: 1.0,
-      } as any).run();
+        layout.run();
+      }
     }
-  }, [graphData]); // Re-run whenever graphData changes
+  }, [graphData, nodePositions]); // ADDED nodePositions here to ensure layout reacts to saves
 
   useEffect(() => {
     if (!popup.isOpen && cyRef.current && !cyRef.current.destroyed()) {
@@ -370,6 +435,46 @@ export default function GraphCanvas() {
           <p className="mt-4 text-sm font-semibold text-gray-600 dark:text-gray-300 animate-pulse">
             Loading Graph...
           </p>
+        </div>
+      )}
+
+      <Toast
+        message={toastState.message}
+        type={toastState.type}
+        onClose={() => setToastState({ message: "", type: null })}
+      />
+
+      {isAdmin && (
+        <div className="absolute top-4 right-4 z-30">
+          <button
+            onClick={handleSaveLayout}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-lg shadow-md hover:opacity-90 transition disabled:opacity-50 font-medium text-sm"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/50 dark:border-slate-900/50 border-t-white dark:border-t-slate-900 rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
+                Save Layout
+              </>
+            )}
+          </button>
         </div>
       )}
 
