@@ -215,6 +215,7 @@ export default function GraphCanvas() {
       });
     }
   }, [setCy]);
+
   useEffect(() => {
     if (graphData && cyRef.current) {
       const cy = cyRef.current;
@@ -222,6 +223,7 @@ export default function GraphCanvas() {
       cy.batch(() => {
         cy.elements().remove();
 
+        // 1. Add nodes (apply saved positions if they exist)
         const nodesWithPositions = graphData.nodes.map((node) => {
           const savedPos = nodePositions[node.data.id];
           return savedPos ? { ...node, position: savedPos } : node;
@@ -229,6 +231,7 @@ export default function GraphCanvas() {
 
         cy.add(nodesWithPositions);
 
+        // 2. Add edges safely
         const validNodeIds = new Set(
           nodesWithPositions.map((n: any) => n.data.id),
         );
@@ -247,16 +250,42 @@ export default function GraphCanvas() {
       });
 
       const hasSavedPositions = Object.keys(nodePositions).length > 0;
+
+      // 3. FORCE AUTOMATIC LAYOUT (Clean & Organized)
+      // We use 'fcose' even if we have saved positions to ensure new nodes (at 0,0)
+      // are integrated nicely without exploding the graph.
       cy.layout({
-        name: hasSavedPositions ? "preset" : "fcose",
+        name: "fcose",
+
+        // --- Core Settings ---
+        // If we have no positions, randomize to find global optimum.
+        // If we DO have positions, don't randomize (keep user's rough layout) but refine it.
+        randomize: !hasSavedPositions,
         animate: false,
-        randomize: false,
-        nodeRepulsion: 4500,
-        idealEdgeLength: 100,
-        fit: !hasSavedPositions,
+        fit: !hasSavedPositions, // Only auto-fit if it's a fresh load
+
+        // --- Grouping & Separation ---
+        quality: "default",
+        packComponents: true, // Key: Groups disconnected modules tightly
+        tile: true, // Key: Tiles these groups nicely
+
+        // --- Visual Spacing ---
+        nodeRepulsion: 6500, // High repulsion = no overlap
+        idealEdgeLength: 80, // Shorter edges = tighter module groups
+        edgeElasticity: 0.45,
+        nestingFactor: 0.1,
+        gravity: 0.25,
+        numIter: 2500,
+
+        // --- Label & Module Handling ---
+        nodeDimensionsIncludeLabels: true, // Prevents text overlap
+        tilingPaddingVertical: 50, // Space between modules (Vertical)
+        tilingPaddingHorizontal: 50, // Space between modules (Horizontal)
+        gravityRangeCompound: 1.5,
+        gravityCompound: 1.0,
       } as any).run();
     }
-  }, [graphData]);
+  }, [graphData]); // Re-run whenever graphData changes
 
   useEffect(() => {
     if (!popup.isOpen && cyRef.current && !cyRef.current.destroyed()) {

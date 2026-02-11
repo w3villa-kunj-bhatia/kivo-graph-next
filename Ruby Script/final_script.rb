@@ -1,6 +1,7 @@
 require 'json'
 require 'set'
-require 'active_support/all' # Critical for accurate naming
+require 'active_support/all'
+require 'parser/current' # Requires: gem install parser
 
 # --- CONFIGURATION ---
 STRUCTURE = {
@@ -12,54 +13,112 @@ STRUCTURE = {
   'lib'             => { module: 'Libs',        color: '#e17055' }
 }
 
-# Standard Ruby classes to ignore to reduce noise
+# Ignore common Ruby/Rails internals
 IGNORE_LIST = Set.new(%w[
   String Integer Array Hash Boolean Date DateTime Time File Dir
   ApplicationRecord ApplicationController ActiveJob::Base StandardError
-  Rails ActiveRecord
+  Rails ActiveRecord ActiveSupport
 ])
+
+# --- AST PROCESSOR ---
+# This class walks the code tree to find real dependencies
+class DependencyVisitor < Parser::AST::Processor
+  attr_reader :dependencies, :inheritance, :extensions
+
+  def initialize
+    @dependencies = Set.new
+    @inheritance = nil
+    @extensions = Set.new
+  end
+
+  # Hook: When a class is defined (class User < ApplicationRecord)
+  def on_class(node)
+    _name_node, superclass_node, _body_node = *node
+    
+    # 1. Capture Inheritance
+    if superclass_node
+      parent_name = unpack_const(superclass_node)
+      @inheritance = parent_name if parent_name
+    end
+
+    super # Continue traversing the body
+  end
+
+  # Hook: When a constant is used (User.new, Admin::Post.find)
+  def on_const(node)
+    name = unpack_const(node)
+    @dependencies.add(name) if name
+    super
+  end
+
+  # Hook: Detect include/extend (module mixins)
+  def on_send(node)
+    _receiver, method_name, *args = *node
+    if [:include, :extend, :prepend].include?(method_name)
+      args.each do |arg|
+        if arg.type == :const
+          name = unpack_const(arg)
+          @extensions.add(name) if name
+        end
+      end
+    end
+    super
+  end
+
+  private
+
+  # Recursively unpacks (const (const nil :Admin) :User) -> "Admin::User"
+  def unpack_const(node)
+    return nil unless node.is_a?(Parser::AST::Node) && node.type == :const
+    
+    scope, name = *node
+    if scope
+      parent = unpack_const(scope)
+      parent ? "#{parent}::#{name}" : "::#{name}" # Handle global scope ::User
+    else
+      name.to_s
+    end
+  end
+end
 
 nodes = []
 edges = []
-class_lookup = {} # Maps "Admin::User" -> "app_models_admin_user"
+class_lookup = {} # Maps "Admin::User" -> "app_models_admin_user" (ID)
 
-puts "🔍 Scanning codebase with Enhanced Accuracy..."
+puts "🔍 Scanning codebase with AST Parser..."
 
 # ---------------------------------------------------------
-# 1. SMART NODE GENERATION
+# 1. SMART NODE GENERATION (Same as before)
 # ---------------------------------------------------------
 STRUCTURE.each do |base_path, config|
   next unless Dir.exist?(base_path)
 
   Dir.glob("#{base_path}/**/*.rb").each do |file_path|
-    # A. Calculate "Weight" (Complexity)
-    # We count characters instead of just lines for better granularity
     content = File.read(file_path)
+    
+    # Weight: Count Non-Comment Lines of Code
     loc = content.lines.count { |line| !line.strip.empty? && !line.strip.start_with?('#') }
     
-    # B. Accurate Naming via ActiveSupport
-    # app/models/admin/user.rb -> Admin::User
+    # Naming: app/models/admin/user.rb -> Admin::User
     relative_path = file_path.sub("#{base_path}/", '').sub('.rb', '')
     class_name = relative_path.camelize 
     
-    # C. Unique ID generation
+    # ID: admin_user
     id = class_name.underscore.gsub('/', '_')
 
-    # Store metadata
     class_lookup[class_name] = id
     
-    # Check for High Complexity (Arbitrary threshold > 100 LOC)
     complexity = loc > 100 ? 'high' : 'normal'
 
     nodes << {
       data: {
         id: id,
-        label: class_name.demodulize, # Shows "User" instead of "Admin::User"
-        fullLabel: class_name,        # Searchable full name
+        label: class_name.demodulize,
+        fullLabel: class_name,
         module: config[:module],
         weight: loc,
         complexity: complexity,
-        archetype: config[:module].singularize # Used for your filters
+        archetype: config[:module].singularize
       }
     }
   end
@@ -68,11 +127,10 @@ end
 puts "✅ Indexing Complete. Found #{nodes.count} definitions."
 
 # ---------------------------------------------------------
-# 2. INTELLIGENT DEPENDENCY PARSING
+# 2. AST-BASED DEPENDENCY PARSING
 # ---------------------------------------------------------
 nodes.each do |node|
-  # Resolve file path from ID back to file system
-  # (In a real enterprise parser, we'd store file_path in node data, but logic here works)
+  # Resolve file path
   file_path = nil
   STRUCTURE.keys.each do |base|
     potential = "#{base}/#{node[:data][:fullLabel].underscore}.rb"
@@ -84,71 +142,84 @@ nodes.each do |node|
   
   next unless file_path
 
-  # READ FILE & STRIP NOISE
-  # We remove comments (#) and Strings ("...") to avoid false positives
-  raw_content = File.read(file_path)
-  clean_content = raw_content.gsub(/#.*$/, '')       # Remove comments
-                             .gsub(/".*?"/, '')      # Remove double quotes
-                             .gsub(/'.*?'/, '')      # Remove single quotes
-
-  # A. INHERITANCE DETECTION (Strongest Link)
-  # Looks for: class User < ApplicationRecord
-  if match = clean_content.match(/class\s+#{node[:data][:label]}\s*<\s*([A-Z][a-zA-Z0-9:]*)/)
-    parent_class = match[1]
+  begin
+    # PARSE THE FILE INTO AST
+    buffer = Parser::Source::Buffer.new(file_path)
+    buffer.source = File.read(file_path)
+    ast = Parser::CurrentRuby.parse(buffer)
     
-    # Handle namespacing logic for parent
-    # If Admin::User inherits from "Base", it might be "Admin::Base"
-    candidates = [parent_class, "#{node[:data][:fullLabel].deconstantize}::#{parent_class}"]
-    
-    target_id = nil
-    candidates.each { |c| target_id = class_lookup[c] if class_lookup[c] }
+    next unless ast # Skip empty files
 
-    if target_id
-      edges << { 
-        data: { 
-          source: node[:data][:id], 
-          target: target_id, 
-          type: 'inheritance' # Visualized as thick line
-        } 
-      }
-    end
-  end
+    # WALK THE AST
+    visitor = DependencyVisitor.new
+    visitor.process(ast)
 
-  # B. CONSTANT SCANNING (Usage)
-  # Find all Capitalized words that are known classes
-  potential_deps = clean_content.scan(/\b([A-Z][a-zA-Z0-9:]*)\b/).flatten.uniq
-  
-  potential_deps.each do |const|
-    next if IGNORE_LIST.include?(const)
-    next if const == node[:data][:label] # Don't link to self
+    # A. HANDLE INHERITANCE (Strong Link)
+    if visitor.inheritance
+      candidates = [
+        visitor.inheritance,
+        "#{node[:data][:fullLabel].deconstantize}::#{visitor.inheritance}"
+      ]
+      
+      target_id = nil
+      candidates.each { |c| target_id = class_lookup[c] if class_lookup[c] }
 
-    # Attempt to resolve namespace (Current namespace first, then global)
-    current_namespace = node[:data][:fullLabel].deconstantize
-    candidates = []
-    
-    candidates << "#{current_namespace}::#{const}" unless current_namespace.empty?
-    candidates << const
-
-    target_id = nil
-    candidates.each do |c| 
-      if class_lookup[c]
-        target_id = class_lookup[c] 
-        break
-      end
-    end
-
-    if target_id && target_id != node[:data][:id]
-      # Check if edge already exists (avoid duplicates)
-      unless edges.any? { |e| e[:data][:source] == node[:data][:id] && e[:data][:target] == target_id }
+      if target_id && target_id != node[:data][:id]
         edges << { 
           data: { 
             source: node[:data][:id], 
             target: target_id, 
-            type: 'usage' # Visualized as thin/dashed line
+            type: 'inheritance' 
           } 
         }
       end
     end
+
+    # B. HANDLE USAGE & EXTENSIONS (Weak Links)
+    # Merge regular deps and mixins
+    all_deps = visitor.dependencies + visitor.extensions
+    
+    all_deps.each do |const|
+      next if IGNORE_LIST.include?(const)
+      next if const == node[:data][:fullLabel] # Don't link self
+      next if const == node[:data][:label]     # Don't link self (short name)
+
+      # Namespace Resolution Strategy
+      candidates = []
+      current_namespace = node[:data][:fullLabel].deconstantize
+      
+      # 1. Try local scope (e.g. inside Admin::User, 'Post' -> Admin::Post)
+      candidates << "#{current_namespace}::#{const}" unless current_namespace.empty?
+      # 2. Try global scope
+      candidates << const
+
+      target_id = nil
+      candidates.each do |c| 
+        if class_lookup[c]
+          target_id = class_lookup[c] 
+          break
+        end
+      end
+
+      # Create Edge if Valid
+      if target_id && target_id != node[:data][:id]
+        # Avoid duplicate edges
+        unless edges.any? { |e| e[:data][:source] == node[:data][:id] && e[:data][:target] == target_id }
+          edges << { 
+            data: { 
+              source: node[:data][:id], 
+              target: target_id, 
+              type: 'usage' 
+            } 
+          }
+        end
+      end
+    end
+
+  rescue Parser::SyntaxError => e
+    puts "⚠️  Skipping #{file_path}: Syntax Error"
+  rescue StandardError => e
+    puts "⚠️  Error processing #{file_path}: #{e.message}"
   end
 end
 
@@ -156,7 +227,7 @@ end
 output = { nodes: nodes, edges: edges }
 File.write('architecture_map.json', JSON.pretty_generate(output))
 
-puts "🚀 Analysis Complete!"
+puts "🚀 AST Analysis Complete!"
 puts "   Nodes: #{nodes.count}"
 puts "   Edges: #{edges.count}"
 puts "   Saved to: architecture_map.json"

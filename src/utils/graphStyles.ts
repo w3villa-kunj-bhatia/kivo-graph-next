@@ -18,12 +18,12 @@ export const getGraphStyles = (
       style: {
         shape: "round-rectangle",
         "background-opacity": 0,
-        "border-width": 2,
+        "border-width": 10,
         "border-color": ((e: any) =>
           COLORS[e.data("module")] || fallbackColor) as any,
         "border-style": "dashed",
         label: "data(label)",
-        "font-size": 40,
+        "font-size": 100,
         "font-weight": "bold",
         color: ((e: any) => COLORS[e.data("module")] || fallbackColor) as any,
         "text-valign": "top",
