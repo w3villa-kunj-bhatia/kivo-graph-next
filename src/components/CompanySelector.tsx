@@ -12,7 +12,8 @@ interface CompanySelectorProps {
 
 export default function CompanySelector({ className }: CompanySelectorProps) {
   const [companies, setCompanies] = useState<any[]>([]);
-  const { setCompanyContext, setGraphData, setIsLoading } = useGraphStore();
+  const { setCompanyContext, setGraphData, setIsLoading, moduleColors } =
+    useGraphStore();
   const selectedId = useGraphStore((s) => s.selectedCompanyId);
 
   useEffect(() => {
@@ -25,22 +26,21 @@ export default function CompanySelector({ className }: CompanySelectorProps) {
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
-
     setIsLoading(true);
 
     try {
       if (!id) {
-        setCompanyContext(null, []);
         const rawGraph = await getCompanyGraph();
         const processed = processGraphData(rawGraph);
+        const allModuleKeys = Object.keys(moduleColors);
+        setCompanyContext(null, allModuleKeys);
         setGraphData(processed);
       } else {
         const company = companies.find((c) => c._id === id);
         if (company) {
-          setCompanyContext(company._id, company.allowedModules);
-
           const rawGraph = await getCompanyGraph(company._id);
           const processed = processGraphData(rawGraph);
+          setCompanyContext(company._id, company.allowedModules);
           setGraphData(processed);
         }
       }

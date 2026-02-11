@@ -1,27 +1,86 @@
 require 'json'
 require 'set'
 require 'active_support/all'
-require 'parser/current' # Requires: gem install parser
+require 'parser/current'
 
-# --- CONFIGURATION ---
-STRUCTURE = {
-  'app/models'      => { module: 'Core',        color: '#0984e3' },
-  'app/services'    => { module: 'Services',    color: '#00b894' },
-  'app/controllers' => { module: 'Controllers', color: '#6c5ce7' },
-  'app/jobs'        => { module: 'Background',  color: '#fab1a0' },
-  'app/mailers'     => { module: 'Comm',        color: '#fdcb6e' },
-  'lib'             => { module: 'Libs',        color: '#e17055' }
+# ==========================================
+# ⚙️ CONFIGURATION
+# ==========================================
+
+# 1. Module Definitions (Priority Order)
+#    Matches your "Current Modules" list.
+MODULE_RULES = [
+  { 
+    name: 'HRMS', 
+    keywords: %w[hrms attend leave salary holiday shift ctc payroll onboard employee asset policy bonus appraisal manpower statutory on_duty] 
+  },
+  { 
+    name: 'ATS', 
+    keywords: %w[ats candid interv applic hiring resume recruit offer job_role sourcing pre_boarding] 
+  },
+  { 
+    name: 'CRM', 
+    keywords: %w[crm deal invoice lead client bill quote customer campaign contact help_center] 
+  },
+  { 
+    name: 'Projects', 
+    keywords: %w[project sprint story epic scrum kanban backlog task tracker board pms] 
+  },
+  { 
+    name: 'AI', 
+    keywords: %w[ai_ openai bot persona gpt voice eval cv product_inventory] 
+  },
+  { 
+    name: 'Comm', 
+    keywords: %w[chat messag channel email notif conversation mailer inbox] 
+  },
+  { 
+    name: 'Inventory', 
+    keywords: %w[inventory stock item warehouse procurement store material] 
+  },
+  { 
+    name: 'Kivo_Calendar', 
+    keywords: %w[calendar event booking availabil team_schedule meeting] 
+  },
+  { 
+    name: 'Payroll', 
+    keywords: %w[payroll payslip tax deduction allowance reimbursement] 
+  },
+  { 
+    name: 'Test', 
+    keywords: %w[test experiment demo sample] 
+  },
+  { 
+    name: 'Core', 
+    keywords: %w[user profile auth role company setting session permission login account feature address location] 
+  }
+]
+
+# Fallback
+DEFAULT_MODULE = 'Utils'
+
+# 2. Scanning & Archetypes
+PATH_CONFIG = {
+  'app/models'      => 'Model',
+  'app/services'    => 'Service',
+  'app/controllers' => 'Controller',
+  'app/jobs'        => 'Worker',
+  'app/mailers'     => 'Mailer',
+  'lib'             => 'Library'
 }
 
-# Ignore common Ruby/Rails internals
+# 3. Filtering
+REMOVE_CONTROLLERS = false 
+
 IGNORE_LIST = Set.new(%w[
   String Integer Array Hash Boolean Date DateTime Time File Dir
   ApplicationRecord ApplicationController ActiveJob::Base StandardError
-  Rails ActiveRecord ActiveSupport
+  Rails ActiveRecord ActiveSupport Set
 ])
 
-# --- AST PROCESSOR ---
-# This class walks the code tree to find real dependencies
+# ==========================================
+# 🧠 AST PROCESSOR
+# ==========================================
 class DependencyVisitor < Parser::AST::Processor
   attr_reader :dependencies, :inheritance, :extensions
 
@@ -31,27 +90,21 @@ class DependencyVisitor < Parser::AST::Processor
     @extensions = Set.new
   end
 
-  # Hook: When a class is defined (class User < ApplicationRecord)
   def on_class(node)
     _name_node, superclass_node, _body_node = *node
-    
-    # 1. Capture Inheritance
     if superclass_node
       parent_name = unpack_const(superclass_node)
       @inheritance = parent_name if parent_name
     end
-
-    super # Continue traversing the body
+    super
   end
 
-  # Hook: When a constant is used (User.new, Admin::Post.find)
   def on_const(node)
     name = unpack_const(node)
     @dependencies.add(name) if name
     super
   end
 
-  # Hook: Detect include/extend (module mixins)
   def on_send(node)
     _receiver, method_name, *args = *node
     if [:include, :extend, :prepend].include?(method_name)
@@ -67,72 +120,81 @@ class DependencyVisitor < Parser::AST::Processor
 
   private
 
-  # Recursively unpacks (const (const nil :Admin) :User) -> "Admin::User"
   def unpack_const(node)
     return nil unless node.is_a?(Parser::AST::Node) && node.type == :const
-    
     scope, name = *node
-    if scope
-      parent = unpack_const(scope)
-      parent ? "#{parent}::#{name}" : "::#{name}" # Handle global scope ::User
-    else
-      name.to_s
-    end
+    scope ? "#{unpack_const(scope)}::#{name}" : name.to_s
   end
 end
 
+# ==========================================
+# 🚀 MAIN EXECUTION
+# ==========================================
+
 nodes = []
 edges = []
-class_lookup = {} # Maps "Admin::User" -> "app_models_admin_user" (ID)
+class_lookup = {}
 
-puts "🔍 Scanning codebase with AST Parser..."
+puts "🔍 Scanning codebase..."
 
-# ---------------------------------------------------------
-# 1. SMART NODE GENERATION (Same as before)
-# ---------------------------------------------------------
-STRUCTURE.each do |base_path, config|
+# 1. NODE GENERATION
+PATH_CONFIG.each do |base_path, archetype|
   next unless Dir.exist?(base_path)
 
   Dir.glob("#{base_path}/**/*.rb").each do |file_path|
-    content = File.read(file_path)
+    content = File.read(file_path, mode: 'r:UTF-8', invalid: :replace, undef: :replace, replace: '') rescue ""
     
-    # Weight: Count Non-Comment Lines of Code
     loc = content.lines.count { |line| !line.strip.empty? && !line.strip.start_with?('#') }
-    
-    # Naming: app/models/admin/user.rb -> Admin::User
     relative_path = file_path.sub("#{base_path}/", '').sub('.rb', '')
     class_name = relative_path.camelize 
-    
-    # ID: admin_user
     id = class_name.underscore.gsub('/', '_')
+    search_text = (id + " " + class_name).downcase
+
+    # --- FILTER ---
+    if REMOVE_CONTROLLERS
+      next if archetype == 'Controller' || id.end_with?('_controller')
+    end
+
+    # --- CLASSIFY ---
+    assigned_module = DEFAULT_MODULE
+    
+    MODULE_RULES.each do |rule|
+      if rule[:keywords].any? { |k| search_text.include?(k) }
+        assigned_module = rule[:name]
+        break
+      end
+    end
 
     class_lookup[class_name] = id
-    
-    complexity = loc > 100 ? 'high' : 'normal'
+
+    # NOTE: We do NOT add Group Nodes here anymore. 
+    # The frontend generates them automatically from the 'module' field below.
 
     nodes << {
       data: {
         id: id,
         label: class_name.demodulize,
         fullLabel: class_name,
-        module: config[:module],
+        module: assigned_module,
+        parent: "g_#{assigned_module}", # Frontend reads this to build the group
         weight: loc,
-        complexity: complexity,
-        archetype: config[:module].singularize
+        complexity: loc > 100 ? 'high' : 'normal',
+        archetype: archetype,
+        isManual: true # Forces frontend to respect 'assigned_module'
       }
     }
   end
 end
 
-puts "✅ Indexing Complete. Found #{nodes.count} definitions."
+puts "✅ Indexing Complete. Processing #{nodes.count} nodes..."
 
-# ---------------------------------------------------------
-# 2. AST-BASED DEPENDENCY PARSING
-# ---------------------------------------------------------
+# 2. DEPENDENCY PARSING
 nodes.each do |node|
-  # Resolve file path
+  # Skip processing if we somehow have a group node (safety check)
+  next if node[:data][:isGroup] 
+
   file_path = nil
-  STRUCTURE.keys.each do |base|
+  PATH_CONFIG.keys.each do |base|
     potential = "#{base}/#{node[:data][:fullLabel].underscore}.rb"
     if File.exist?(potential)
       file_path = potential
@@ -143,54 +205,41 @@ nodes.each do |node|
   next unless file_path
 
   begin
-    # PARSE THE FILE INTO AST
-    buffer = Parser::Source::Buffer.new(file_path)
-    buffer.source = File.read(file_path)
-    ast = Parser::CurrentRuby.parse(buffer)
-    
-    next unless ast # Skip empty files
+    content = File.read(file_path, mode: 'r:UTF-8', invalid: :replace, undef: :replace, replace: '')
+    # Sanitization for Ruby 3.4 Parser
+    content = content.gsub(/\\x[0-9a-fA-F]{2}/, '__') 
 
-    # WALK THE AST
+    ast = Parser::CurrentRuby.parse(content, file_path)
+    next unless ast
+
     visitor = DependencyVisitor.new
     visitor.process(ast)
 
-    # A. HANDLE INHERITANCE (Strong Link)
+    # A. Inheritance
     if visitor.inheritance
       candidates = [
         visitor.inheritance,
         "#{node[:data][:fullLabel].deconstantize}::#{visitor.inheritance}"
       ]
-      
       target_id = nil
       candidates.each { |c| target_id = class_lookup[c] if class_lookup[c] }
 
       if target_id && target_id != node[:data][:id]
         edges << { 
-          data: { 
-            source: node[:data][:id], 
-            target: target_id, 
-            type: 'inheritance' 
-          } 
+          data: { source: node[:data][:id], target: target_id, type: 'inheritance' } 
         }
       end
     end
 
-    # B. HANDLE USAGE & EXTENSIONS (Weak Links)
-    # Merge regular deps and mixins
-    all_deps = visitor.dependencies + visitor.extensions
-    
-    all_deps.each do |const|
+    # B. Usage
+    (visitor.dependencies + visitor.extensions).each do |const|
       next if IGNORE_LIST.include?(const)
-      next if const == node[:data][:fullLabel] # Don't link self
-      next if const == node[:data][:label]     # Don't link self (short name)
+      next if const == node[:data][:fullLabel]
+      next if const == node[:data][:label]
 
-      # Namespace Resolution Strategy
       candidates = []
       current_namespace = node[:data][:fullLabel].deconstantize
-      
-      # 1. Try local scope (e.g. inside Admin::User, 'Post' -> Admin::Post)
       candidates << "#{current_namespace}::#{const}" unless current_namespace.empty?
-      # 2. Try global scope
       candidates << const
 
       target_id = nil
@@ -201,16 +250,11 @@ nodes.each do |node|
         end
       end
 
-      # Create Edge if Valid
       if target_id && target_id != node[:data][:id]
-        # Avoid duplicate edges
+        # Prevent duplicates
         unless edges.any? { |e| e[:data][:source] == node[:data][:id] && e[:data][:target] == target_id }
           edges << { 
-            data: { 
-              source: node[:data][:id], 
-              target: target_id, 
-              type: 'usage' 
-            } 
+            data: { source: node[:data][:id], target: target_id, type: 'usage' } 
           }
         end
       end
@@ -227,7 +271,10 @@ end
 output = { nodes: nodes, edges: edges }
 File.write('architecture_map.json', JSON.pretty_generate(output))
 
-puts "🚀 AST Analysis Complete!"
-puts "   Nodes: #{nodes.count}"
-puts "   Edges: #{edges.count}"
-puts "   Saved to: architecture_map.json"
+puts "\n" + "="*40
+puts "🚀 PROCESS COMPLETE"
+puts "="*40
+puts "Nodes : #{nodes.count}"
+puts "Edges : #{edges.count}"
+puts "Saved : architecture_map.json"
+puts "="*40 + "\n"

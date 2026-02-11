@@ -69,7 +69,6 @@ export default function GraphCanvas() {
 
   const layoutContext = "global";
 
-  // Load Layout on Mount from Database
   useEffect(() => {
     async function loadLayout() {
       const savedPositions = await getGraphLayout(layoutContext);
@@ -87,7 +86,6 @@ export default function GraphCanvas() {
     const positions: Record<string, { x: number; y: number }> = {};
 
     cyRef.current.nodes().forEach((node) => {
-      // We save positions for leaf nodes or designated module groups
       if (!node.isParent() || node.data("isGroup")) {
         positions[node.id()] = node.position();
       }
@@ -260,7 +258,6 @@ export default function GraphCanvas() {
     }
   }, [setCy, isAdmin]);
 
-  // SMART RENDERER: Syncs store data with Cytoscape and manages layout transitions
   useEffect(() => {
     if (graphData && cyRef.current) {
       const cy = cyRef.current;
@@ -268,7 +265,6 @@ export default function GraphCanvas() {
       cy.batch(() => {
         cy.elements().remove();
 
-        // 1. Assign positions from store to nodes being added
         const nodesWithPositions = graphData.nodes.map((node) => {
           const savedPos = nodePositions[node.data.id];
           return savedPos ? { ...node, position: savedPos } : node;
@@ -276,7 +272,6 @@ export default function GraphCanvas() {
 
         cy.add(nodesWithPositions);
 
-        // 2. Add edges safely
         const validNodeIds = new Set(
           nodesWithPositions.map((n: any) => n.data.id),
         );
@@ -294,18 +289,12 @@ export default function GraphCanvas() {
         }
       });
 
-      // --- SMART LAYOUT TRANSITIONS ---
-
       const hasSavedPositions = Object.keys(nodePositions).length > 0;
-
-      // Check for new nodes that lack saved positions (e.g., Company Feature nodes)
       const hasNewUnpositionedNodes = graphData.nodes.some(
         (node) => !nodePositions[node.data.id],
       );
 
       if (hasSavedPositions && !hasNewUnpositionedNodes) {
-        // SCENARIO: Switching views (e.g., Company -> All) where data is already saved.
-        // Use 'preset' to strictly respect the saved coordinates.
         cy.layout({
           name: "preset",
           fit: true,
@@ -313,8 +302,6 @@ export default function GraphCanvas() {
           animate: false,
         } as any).run();
       } else {
-        // SCENARIO: Fresh graph or adding new nodes (Features).
-        // Lock existing nodes to maintain their positions while new ones flow around them.
         if (hasSavedPositions) {
           cy.nodes()
             .filter((n) => !!nodePositions[n.id()])
@@ -338,8 +325,6 @@ export default function GraphCanvas() {
           nodeDimensionsIncludeLabels: true,
           tilingPaddingVertical: 50,
           tilingPaddingHorizontal: 50,
-
-          // Unlock nodes after layout completes so user can drag them again
           stop: () => {
             if (hasSavedPositions) {
               cy.nodes().unlock();
@@ -350,7 +335,7 @@ export default function GraphCanvas() {
         layout.run();
       }
     }
-  }, [graphData, nodePositions]); // ADDED nodePositions here to ensure layout reacts to saves
+  }, [graphData, nodePositions]);
 
   useEffect(() => {
     if (!popup.isOpen && cyRef.current && !cyRef.current.destroyed()) {
