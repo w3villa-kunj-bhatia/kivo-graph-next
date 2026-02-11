@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import dbConnect from "@/lib/dbConnect";
 import GraphLog from "@/models/GraphLog";
 import AccessPolicy from "@/models/AccessPolicy";
-import GraphLayout from "@/models/GraphLayout"; // Ensure this model exists
+import GraphLayout from "@/models/GraphLayout";
 import { auth } from "@/auth";
 
 export async function uploadGraph(prevState: any, formData: FormData) {
@@ -114,8 +114,6 @@ export async function getCompanyGraph(companyId?: string) {
   };
 }
 
-// --- NEW: Layout Persistence Actions ---
-
 export async function saveGraphLayout(
   positions: Record<string, { x: number; y: number }>,
   context: string = "global",
@@ -164,8 +162,6 @@ export async function getGraphLayout(context: string = "global") {
     return {};
   }
 }
-
-// ---------------------------------------
 
 export async function addNodeToGraph(nodeData: any) {
   const session = await auth();

@@ -23,7 +23,7 @@ interface GraphState {
   edgesCount: number;
   isDarkMode: boolean;
   isLoading: boolean;
-  isSaving: boolean; // Added isSaving state
+  isSaving: boolean; 
 
   graphData: { nodes: any[]; edges: any[] } | null;
   nodePositions: Record<string, { x: number; y: number }>;
@@ -54,7 +54,7 @@ interface GraphState {
   setCy: (cy: cytoscape.Core | null) => void;
   setGraphData: (data: { nodes: any[]; edges: any[] } | null) => void;
   setIsLoading: (loading: boolean) => void;
-  setIsSaving: (loading: boolean) => void; // Added setIsSaving action
+  setIsSaving: (loading: boolean) => void; 
 
   setNodePositions: (
     positions: Record<string, { x: number; y: number }>,
@@ -87,7 +87,7 @@ export const useGraphStore = create<GraphState>()(
       edgesCount: 0,
       isDarkMode: true,
       isLoading: true,
-      isSaving: false, // Initialized isSaving to false
+      isSaving: false, 
       graphData: null,
 
       nodePositions: {},
@@ -114,7 +114,7 @@ export const useGraphStore = create<GraphState>()(
       setCy: (cy) => set({ cy }),
       setGraphData: (data) => set({ graphData: data }),
       setIsLoading: (loading) => set({ isLoading: loading }),
-      setIsSaving: (loading) => set({ isSaving: loading }), // Implemented setIsSaving action
+      setIsSaving: (loading) => set({ isSaving: loading }),
       setStats: (n, e) => set({ nodesCount: n, edgesCount: e }),
 
       setNodePositions: (positions) =>

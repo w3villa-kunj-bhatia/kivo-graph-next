@@ -4,7 +4,7 @@ export interface IGraphLayout extends Document {
   nodeId: string;
   x: number;
   y: number;
-  context: string; // 'global' or a specific company ID
+  context: string;
   updatedAt: Date;
 }
 
@@ -18,7 +18,6 @@ const GraphLayoutSchema: Schema = new Schema(
   { timestamps: true },
 );
 
-// Prevent duplicate positions for the same node in the same context
 GraphLayoutSchema.index({ nodeId: 1, context: 1 }, { unique: true });
 
 const GraphLayout: Model<IGraphLayout> =

@@ -55,7 +55,6 @@ export default function UIOverlay() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [nodeList, setNodeList] = useState<any[]>([]);
 
-  // Local Toast State
   const [toastState, setToastState] = useState<{
     message: string;
     type: "success" | "error" | null;
@@ -63,14 +62,12 @@ export default function UIOverlay() {
 
   const isAdmin = session?.user?.role === "admin";
 
-  // --- HANDLE SAVE LAYOUT ---
   const handleSaveLayout = async () => {
     if (!cy || cy.destroyed()) return;
 
     setIsSaving(true);
     const positions: Record<string, { x: number; y: number }> = {};
 
-    // Extract current coordinates for all nodes that are not automatically sized containers
     cy.nodes().forEach((node: any) => {
       if (!node.isParent() || node.data("isGroup")) {
         positions[node.id()] = node.position();
@@ -80,7 +77,6 @@ export default function UIOverlay() {
     const finalPositions = { ...nodePositions, ...positions };
     setNodePositions(finalPositions);
 
-    // Persist to database
     const result = await saveGraphLayout(finalPositions, "global");
     setIsSaving(false);
 
@@ -146,8 +142,6 @@ export default function UIOverlay() {
 
         if (data) {
           const elements = processGraphData(data);
-          // Set data in store; GraphCanvas useEffect will handle the rendering and layout logic
-          // This prevents UIOverlay from overriding preset positions with a fresh fcose layout
           setGraphData(elements);
           setStats(elements.nodes.length, elements.edges.length);
         }
@@ -332,7 +326,6 @@ export default function UIOverlay() {
           <div
             className={`flex gap-2 ${isMobileMenuOpen ? "justify-between mb-2" : "shrink-0"}`}
           >
-            {/* SAVE LAYOUT BUTTON */}
             {isAdmin && (
               <button
                 onClick={handleSaveLayout}
@@ -341,7 +334,7 @@ export default function UIOverlay() {
                   ${
                     isSaving
                       ? "bg-(--border) text-(--text-sub) cursor-not-allowed opacity-50"
-                      : "bg-blue-600/10 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-600/30 shadow-sm"
+                      : "p-2.5 rounded-lg hover:bg-(--border) text-(--text-main) border border-(--border) flex items-center justify-center"
                   }`}
                 title="Save Current Node Positions"
               >
