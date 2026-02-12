@@ -62,8 +62,11 @@ export const applyFiltersToGraph = (
     cy.nodes().forEach((n) => {
       if (n.isParent()) {
         const mod = n.data("module");
-        if (mod && !activeFilters.has(mod)) n.style("display", "none");
-        else n.style("display", "element");
+        if (mod && !activeFilters.has(mod)) {
+          n.addClass("filtered-out");
+        } else {
+          n.removeClass("filtered-out");
+        }
         return;
       }
 
@@ -81,9 +84,11 @@ export const applyFiltersToGraph = (
       const archMatch = activeFilters.has(archetype);
       const topoMatch = activeFilters.has(topology);
 
-      if (modMatch && riskMatch && archMatch && topoMatch)
-        n.style("display", "element");
-      else n.style("display", "none");
+      if (modMatch && riskMatch && archMatch && topoMatch) {
+        n.removeClass("filtered-out");
+      } else {
+        n.addClass("filtered-out");
+      }
     });
   });
 };

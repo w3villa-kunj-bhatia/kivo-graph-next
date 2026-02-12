@@ -140,5 +140,11 @@ export const getGraphStyles = (
         "border-opacity": 0.8,
       },
     },
+    {
+      selector: ".filtered-out",
+      style: {
+        display: "none",
+      },
+    },
   ];
 };

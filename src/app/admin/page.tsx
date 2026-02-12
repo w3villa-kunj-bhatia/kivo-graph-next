@@ -127,17 +127,6 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (isDarkMode) {
-      root.classList.add("dark");
-      root.style.colorScheme = "dark";
-    } else {
-      root.classList.remove("dark");
-      root.style.colorScheme = "light";
-    }
-  }, [isDarkMode]);
-
-  useEffect(() => {
     fetchData();
   }, []);
 
@@ -1012,7 +1001,20 @@ export default function AdminPage() {
                             style={{ backgroundColor: c }}
                           />
                         ))}
-                        <div className="relative w-10 h-10 rounded-xl border-2 border-dashed border-(--border) flex items-center justify-center hover:bg-purple-500/10 transition-colors">
+                        <div
+                          className={`relative w-10 h-10 rounded-xl border-2 transition-all flex items-center justify-center hover:bg-purple-500/10 ${
+                            !PRESET_COLORS.includes(selectedModuleColor)
+                              ? "ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900 scale-110 border-solid"
+                              : "border-dashed border-(--border)"
+                          }`}
+                          style={{
+                            backgroundColor: !PRESET_COLORS.includes(
+                              selectedModuleColor,
+                            )
+                              ? selectedModuleColor
+                              : "transparent",
+                          }}
+                        >
                           <input
                             type="color"
                             value={selectedModuleColor}
@@ -1021,7 +1023,14 @@ export default function AdminPage() {
                             }
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                           />
-                          <PlusCircle className="w-5 h-5 text-(--text-sub)" />
+                          {!PRESET_COLORS.includes(selectedModuleColor) ? (
+                            <Check
+                              className="w-5 h-5 text-white drop-shadow-md"
+                              strokeWidth={3}
+                            />
+                          ) : (
+                            <PlusCircle className="w-5 h-5 text-(--text-sub)" />
+                          )}
                         </div>
                       </div>
                     </div>
