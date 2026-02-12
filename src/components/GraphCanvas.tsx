@@ -175,8 +175,12 @@ export default function GraphCanvas() {
       cyRef.current.json({
         style: getGraphStyles(isDarkMode, moduleColors),
       } as any);
+
+      if (activeFilters) {
+        applyFiltersToGraph(cyRef.current, activeFilters);
+      }
     }
-  }, [isDarkMode, moduleColors]);
+  }, [isDarkMode, moduleColors, activeFilters]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -318,7 +322,7 @@ export default function GraphCanvas() {
       const hasSavedPositions = Object.keys(nodePositions).length > 0;
 
       if (hasSavedPositions) {
-        cy.layout({ name: "preset", fit: true, padding: 50 }).run();
+        cy.layout({ name: "preset", fit: false, padding: 50 }).run();
       } else {
         cy.layout(layoutConfig as any).run();
       }
