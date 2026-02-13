@@ -17,11 +17,14 @@ export const getGraphStyles = (
       selector: "node[?isGroup]",
       style: {
         shape: "round-rectangle",
-        "background-opacity": 0,
+        "corner-radius": 32,
+        "background-color": ((e: any) =>
+          COLORS[e.data("module")] || fallbackColor) as any,
+        "background-opacity": isDark ? 0.08 : 0.04,
         "border-width": 10,
         "border-color": ((e: any) =>
           COLORS[e.data("module")] || fallbackColor) as any,
-        "border-style": "dashed",
+        "border-style": "solid",
         label: "data(label)",
         "font-size": 100,
         "font-weight": "bold",
@@ -55,6 +58,7 @@ export const getGraphStyles = (
       selector: "node[archetype = 'Feature']",
       style: {
         shape: "round-rectangle",
+        "corner-radius": 12,
         width: 140,
         height: 32,
         "font-size": 11,
