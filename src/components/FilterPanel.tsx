@@ -1,4 +1,5 @@
 "use client";
+
 import { useGraphStore } from "@/store/useGraphStore";
 import {
   COMPLEXITY_TYPES,
@@ -13,81 +14,110 @@ import { applyFiltersToGraph } from "@/utils/graphInteraction";
 export default function FilterPanel() {
   const {
     isFilterPanelOpen,
-    activeFilters,
+    activeFilters = new Set<string>(),
     toggleFilter,
     resetFilters,
     cy,
     allowedModules,
     selectedCompanyId,
-    moduleColors, 
+    moduleColors,
   } = useGraphStore();
 
   useEffect(() => {
-    if (cy) applyFiltersToGraph(cy, activeFilters);
+    if (cy) {
+      applyFiltersToGraph(cy, activeFilters);
+    }
   }, [activeFilters, cy]);
 
   const renderSection = (title: string, items: Record<string, any>) => (
-    <div className="mb-4">
-      <h3 className="text-[10px] font-bold text-(--text-sub) uppercase tracking-wider border-b border-(--border) pb-1 mb-4">
+    <div className="mb-6">
+      <h3 className="text-[12px] font-bold text-(--text-sub) uppercase tracking-widest border-b border-(--border) pb-2 mb-2 opacity-70">
         {title}
       </h3>
-      {Object.entries(items).map(([key, config]) => {
-        if (
-          title === "Modules" &&
-          selectedCompanyId &&
-          !allowedModules.has(key)
-        ) {
-          return null;
-        }
+      <div className="flex flex-col gap-1">
+        {Object.entries(items || {}).map(([key, config]) => {
+          if (
+            title === "Modules" &&
+            selectedCompanyId &&
+            allowedModules &&
+            !allowedModules.has(key)
+          ) {
+            return null;
+          }
 
-        const color =
-          typeof config === "string" ? config : config.color || "#94a3b8";
-        const label = typeof config === "string" ? key : config.label;
-        const isActive = activeFilters.has(key);
+          const color =
+            typeof config === "string" ? config : config.color || "#94a3b8";
+          const label = typeof config === "string" ? key : config.label;
+          const isActive = activeFilters.has(key);
 
-        return (
-          <div
-            key={key}
-            onClick={() => toggleFilter(key)}
-            className={clsx(
-              "flex items-center gap-2 py-1.5 cursor-pointer text-xs transition-opacity",
-              !isActive && "opacity-50",
-            )}
-          >
+          return (
             <div
-              className="w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center"
-              style={{
-                borderColor: color,
-                backgroundColor: isActive ? color : "transparent",
-              }}
+              key={key}
+              onClick={() => toggleFilter(key)}
+              className="flex items-center justify-between group py-1 cursor-pointer transition-all duration-200"
             >
-              <Check className="w-2.5 h-2.5 text-white" />
+              <div className="flex items-center gap-3">
+                <div
+                  className={clsx(
+                    "w-4 h-4 rounded-lg border-2 flex items-center justify-center transition-all duration-200",
+                    isActive ? "scale-110 shadow-sm" : "opacity-40",
+                  )}
+                  style={{
+                    borderColor: color,
+                    backgroundColor: isActive ? color : "transparent",
+                  }}
+                >
+                  {isActive && (
+                    <Check className="w-3 h-3 text-white stroke-[3px]" />
+                  )}
+                </div>
+                <span
+                  className={clsx(
+                    "text-xs font-bold transition-colors",
+                    isActive
+                      ? "text-(--text-main)"
+                      : "text-(--text-sub) opacity-50",
+                  )}
+                >
+                  {label}
+                </span>
+              </div>
+
+              {isActive && (
+                <div
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+              )}
             </div>
-            <span className="font-semibold text-(--text-main)">{label}</span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 
   return (
     <div
       className={clsx(
-        "absolute top-25 w-56 bg-(--card-bg) backdrop-blur-md border border-(--border) rounded-xl shadow-xl z-40 transition-transform duration-300 max-h-[80vh] overflow-y-auto flex flex-col",
-        isFilterPanelOpen ? "translate-x-5" : "-translate-x-full",
+        "absolute top-25 w-60 bg-(--card-bg) backdrop-blur-xl border border-(--border) rounded-4xl shadow-2xl z-40 transition-all duration-500 ease-in-out max-h-[75vh] flex flex-col overflow-hidden",
+        isFilterPanelOpen
+          ? "translate-x-6 opacity-100"
+          : "-translate-x-full opacity-0",
       )}
     >
-      <div className="p-4 sticky top-0 bg-inherit z-10 flex justify-between items-center border-b border-(--border)">
-        <span className="text-md font-bold text-(--text-sub)">FILTERS</span>
+      <div className="p-6 pb-4 sticky top-0 bg-transparent z-10 flex justify-between items-center border-b border-(--border)/50">
+        <span className="text-xs font-black text-(--text-sub) tracking-[0.2em]">
+          FILTERS
+        </span>
         <button
           onClick={resetFilters}
-          className="text-sm text-blue-500 font-semibold hover:text-blue-600"
+          className="text-[11px] text-blue-500 font-bold hover:text-blue-400 transition-colors uppercase"
         >
           Reset
         </button>
       </div>
 
-      <div className="p-4 pt-4">
+      <div className="p-6 pt-4 overflow-y-auto custom-scrollbar">
         {renderSection("Risk Levels", COMPLEXITY_TYPES)}
         {renderSection("Topology", TOPOLOGY_TYPES)}
         {renderSection("Layers", ARCHETYPES)}
