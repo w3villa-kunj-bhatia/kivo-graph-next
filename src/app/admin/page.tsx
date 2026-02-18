@@ -127,6 +127,17 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add("dark");
+      root.style.colorScheme = "dark";
+    } else {
+      root.classList.remove("dark");
+      root.style.colorScheme = "light";
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
     fetchData();
   }, []);
 
